@@ -1,5 +1,5 @@
-#ifndef DIFF_MATH_H_
-#define DIFF_MATH_H_
+#ifndef DIFF_OBJECTS_H_
+#define DIFF_OBJECTS_H_
 
 #include <math.h>
 #include <assert.h>
@@ -8,16 +8,49 @@
 #include <ctype.h>
 
 #include "config.h"
+#include TREE_INCLUDE
 
-#ifdef DEBUG
+enum DiffOperType {
+    OPER_TYPE_ERR = 0,
+    UNARY         = 1,
+    BINARY        = 2,
+};
 
-#include "TreeDebug/TreeDebug.h"
+enum class DiffOperNum {
+    ERR  = -1,
+    ADD  =  0,
+    SUB  =  1,
+    MUL  =  2,
+    DIV  =  3,
+    POW  =  4,
+    LN   =  5,
+    SQRT =  6,
+    SIN  =  7,
+    COS  =  8,
+};
 
-#else //< #ifndef DEBUG
+struct DiffOper {
+    DiffOperNum num = DiffOperNum::ERR;
+    const char* str = nullptr;
+    DiffOperType type = OPER_TYPE_ERR;
+};
 
-#include "Tree/Tree.h"
+constexpr DiffOper DIFF_OPERS[] = {
+    {DiffOperNum::ADD,  "+",    BINARY},
+    {DiffOperNum::SUB,  "-",    BINARY},
+    {DiffOperNum::MUL,  "*",    BINARY},
+    {DiffOperNum::DIV,  "/",    BINARY},
+    {DiffOperNum::POW,  "^",    BINARY},
+    {DiffOperNum::LN,   "ln",   UNARY},
+    {DiffOperNum::SQRT, "sqrt", UNARY},
+    {DiffOperNum::SIN,  "sin",  UNARY},
+    {DiffOperNum::COS,  "cos",  UNARY},
+};
 
-#endif //< #ifdef DEBUG
+constexpr size_t OPERS_NUM = sizeof(DIFF_OPERS) / sizeof(*DIFF_OPERS);
+
+static_assert((int)(DIFF_OPERS[0].num) == 0);
+static_assert((int)(DIFF_OPERS[OPERS_NUM - 1].num) == OPERS_NUM - 1);
 
 struct DiffVar {
     char* name = nullptr;
@@ -53,15 +86,6 @@ struct DiffVars {
     }
 };
 
-enum class DiffOper {
-    ERR = 0,
-    ADD = 1,
-    SUB = 2,
-    MUL = 3,
-    DIV = 4,
-    POW = 5,
-};
-
 enum class DiffElemType {
     ERR  = 0,
     OPER = 1,
@@ -70,7 +94,7 @@ enum class DiffElemType {
 };
 
 union DiffElemData {
-    DiffOper oper = DiffOper::ERR;
+    DiffOperNum oper = DiffOperNum::ERR;
     double num;
     size_t var;
 };
@@ -96,10 +120,16 @@ struct DiffData {
         res |= vars.ctor();
         return res;
     };
-    inline void dtor() { vars.dtor(); };
+    inline void dtor() {
+        vars.dtor();
+        tree_dtor(&tree);
+    };
 };
 
 bool diff_math_add_variable(const char* text, long* const i, DiffVars* vars, size_t* var_num);
 
+inline bool is_var_char(const char c) {
+    return c == '_' || isalnum(c);
+}
 
-#endif //< #ifndef DIFF_MATH_H_
+#endif //< #ifndef DIFF_OBJECTS_H_

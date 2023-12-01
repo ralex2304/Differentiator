@@ -1,15 +1,10 @@
-#include "config.h"
-
-#ifdef DEBUG
-#include "TreeDebug/TreeDebug.h"
-#else //< #ifndef DEBUG
-#include "Tree/Tree.h"
-#endif //< #ifdef DEBUG
-
 #include "log/log.h"
 #include "utils/statuses.h"
 #include "utils/args_parser.h"
 #include "diff.h"
+
+#include "config.h"
+#include TREE_INCLUDE
 
 LogFileData log_file = {"log"};
 

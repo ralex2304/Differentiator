@@ -1,6 +1,4 @@
-#include "diff_math.h"
-
-inline static bool is_var_char_(const char c);
+#include "diff_objects.h"
 
 static bool diff_math_add_variable_search_(DiffVars* vars, const char* name, const size_t name_size,
                                            size_t* var_num);
@@ -16,7 +14,7 @@ bool diff_math_add_variable(const char* text, long* const i, DiffVars* vars, siz
 
     const char* name_begin = text + *i;
 
-    while (is_var_char_(text[*i])) (*i)++;
+    while (is_var_char(text[*i])) (*i)++;
 
     ssize_t name_size = text + *i - name_begin;
 
@@ -69,11 +67,11 @@ static bool diff_math_add_variable_is_banned_name_(const char* name, const size_
         if (!('0' <= name[i] && name[i] <= '9'))
             return false;
 
-    return true;
-}
+    for (size_t i = 0; i < OPERS_NUM; i++)
+        if (strncmp(name, DIFF_OPERS[i].str, name_size) == 0)
+            return false;
 
-inline static bool is_var_char_(const char c) {
-    return c == '_' || isalnum(c);
+    return true;
 }
 
 bool diff_elem_dtor(void* elem) {
@@ -81,7 +79,7 @@ bool diff_elem_dtor(void* elem) {
 
 #ifdef DEBUG
     ((DiffElem*)elem)->type      = DiffElemType::ERR;
-    ((DiffElem*)elem)->data.oper = DiffOper::ERR;
+    ((DiffElem*)elem)->data.oper = DiffOperNum::ERR;
 #endif //< #ifdef DEBUG
 
     return true;
@@ -91,15 +89,15 @@ bool diff_elem_verify(void* elem) {
     assert(elem);
 
     if (((DiffElem*)elem)->type == DiffElemType::ERR) {
-        if (((DiffElem*)elem)->data.oper != DiffOper::ERR)
+        if (((DiffElem*)elem)->data.oper != DiffOperNum::ERR)
             return false;
 
     } else if (((DiffElem*)elem)->type == DiffElemType::OPER) {
-        if (((DiffElem*)elem)->data.oper == DiffOper::ERR)
+        if (((DiffElem*)elem)->data.oper == DiffOperNum::ERR)
             return false;
 
     } else if (((DiffElem*)elem)->type == DiffElemType::NUM) {
-        if (!isnormal(((DiffElem*)elem)->data.num))
+        if (!isfinite(((DiffElem*)elem)->data.num))
             return false;
 
     } else if (((DiffElem*)elem)->type == DiffElemType::VAR) {
@@ -111,7 +109,7 @@ bool diff_elem_verify(void* elem) {
     return true;
 }
 
-#define OPER_CASE_(enum_, symbol_)  case DiffOper::enum_:                           \
+#define OPER_CASE_(enum_, symbol_)  case DiffOperNum::enum_:                        \
                                         snprintf(str, MAX_ELEM_STR_LEN, symbol_);   \
                                         break;
 
@@ -124,21 +122,19 @@ char* diff_elem_str_val(const void* elem) {
     if (str == nullptr)
         return nullptr;
 
-    if (((const DiffElem*)elem)->type == DiffElemType::NUM)
+    if (((const DiffElem*)elem)->type == DiffElemType::NUM) {
         snprintf(str, MAX_ELEM_STR_LEN, "%lf", ((const DiffElem*)elem)->data.num);
-    else if (((const DiffElem*)elem)->type == DiffElemType::OPER) {
-        switch (((const DiffElem*)elem)->data.oper) {
-            OPER_CASE_(ADD, "+");
-            OPER_CASE_(SUB, "-");
-            OPER_CASE_(MUL, "*");
-            OPER_CASE_(DIV, "/");
-            OPER_CASE_(POW, "^");
 
-            case DiffOper::ERR:
-            default:
-                snprintf(str, MAX_ELEM_STR_LEN, "Unknown operation: %d",
-                         (int)((const DiffElem*)elem)->data.oper);
-                break;
+    } else if (((const DiffElem*)elem)->type == DiffElemType::OPER) {
+
+        if ((ssize_t)((const DiffElem*)elem)->data.oper < 0 ||
+            (size_t)((const DiffElem*)elem)->data.oper >= OPERS_NUM) {
+
+            snprintf(str, MAX_ELEM_STR_LEN, "Unknown operation: %d",
+                                        (int)((const DiffElem*)elem)->data.oper);
+        } else {
+            snprintf(str, MAX_ELEM_STR_LEN, "%s",
+                     DIFF_OPERS[(ssize_t)((const DiffElem*)elem)->data.oper].str);
         }
     } else if (((const DiffElem*)elem)->type == DiffElemType::VAR) {
         snprintf(str, MAX_ELEM_STR_LEN, "Var: %zu", ((const DiffElem*)elem)->data.var);

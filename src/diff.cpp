@@ -1,6 +1,7 @@
 #include "diff.h"
 
-#define LOCAL_DTOR_() diff_data.dtor();
+#define LOCAL_DTOR_() diff_data.dtor();\
+                      FREE(text);
 
 Status::Statuses diff_proccess(const char* input_filename) {
     assert(input_filename);
@@ -9,7 +10,12 @@ Status::Statuses diff_proccess(const char* input_filename) {
     if (!diff_data.ctor())
         return Status::MEMORY_EXCEED;
 
-    STATUS_CHECK(diff_read_tree(&diff_data, input_filename), LOCAL_DTOR_());
+    char* text = nullptr;
+    STATUS_CHECK(diff_read_tree(&diff_data, &text, input_filename), LOCAL_DTOR_());
+
+    TREE_DUMP(&diff_data.tree);
+
+    STATUS_CHECK(diff_do_diff(&diff_data), LOCAL_DTOR_());
 
     TREE_DUMP(&diff_data.tree);
 
@@ -19,15 +25,13 @@ Status::Statuses diff_proccess(const char* input_filename) {
 }
 #undef LOCAL_DTOR_
 
-Status::Statuses diff_read_tree(DiffData* diff_data, const char* input_filename) {
+Status::Statuses diff_read_tree(DiffData* diff_data, char** text, const char* input_filename) {
     assert(diff_data);
     assert(input_filename);
 
-    char* input = nullptr;
+    STATUS_CHECK(file_open_read_close(input_filename, text));
 
-    STATUS_CHECK(file_open_read_close(input_filename, &input));
-
-    STATUS_CHECK(text_tree_parser(diff_data, input));
+    STATUS_CHECK(text_tree_parser(diff_data, *text));
 
     return Status::NORMAL_WORK;
 }

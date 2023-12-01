@@ -4,23 +4,17 @@
 #include <assert.h>
 
 #include "utils/statuses.h"
-#include "config.h"
-#include "diff_math.h"
+#include "diff_objects.h"
 #include "file/file.h"
 #include "text_tree_parser/text_tree_parser.h"
+#include "diff_math/differentiation.h"
 
-#ifdef DEBUG
+#include "config.h"
+#include TREE_INCLUDE
 
-#include "TreeDebug/TreeDebug.h"
-
-#else //< #ifndef DEBUG
-
-#include "Tree/Tree.h"
-
-#endif //< #ifdef DEBUG
 
 Status::Statuses diff_proccess(const char* input_filename);
 
-Status::Statuses diff_read_tree(DiffData* diff_data, const char* input_file);
+Status::Statuses diff_read_tree(DiffData* diff_data, char** text, const char* input_file);
 
 #endif //< #ifndef DIFF_H_

@@ -41,7 +41,7 @@ struct LogFileData {
  * @param ...
  * @return int
  */
-int log_printf(LogFileData* log, const char* format, ...);
+int stk_log_printf(LogFileData* log, const char* format, ...);
 
 /**
  * @brief Opens log file
@@ -51,7 +51,7 @@ int log_printf(LogFileData* log, const char* format, ...);
  * @return true success
  * @return false failure
  */
-bool log_open_file(LogFileData* log, const char* mode = "ab");
+bool stk_log_open_file(LogFileData* log, const char* mode = "ab");
 
 /**
  * @brief Closes log fle
@@ -60,6 +60,6 @@ bool log_open_file(LogFileData* log, const char* mode = "ab");
  * @return true success
  * @return false failure
  */
-bool log_close_file(LogFileData* log);
+bool stk_log_close_file(LogFileData* log);
 
 #endif // #ifndef STK_LOG_H_

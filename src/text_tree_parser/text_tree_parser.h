@@ -5,19 +5,11 @@
 #include <ctype.h>
 
 #include "../utils/statuses.h"
-#include "../config.h"
 #include "../file/file.h"
-#include "../diff_math.h"
+#include "../diff_objects.h"
 
-#ifdef DEBUG
-
-#include "TreeDebug/TreeDebug.h"
-
-#else //< #ifndef DEBUG
-
-#include "Tree/Tree.h"
-
-#endif //< #ifdef DEBUG
+#include "../config.h"
+#include TREE_INCLUDE
 
 Status::Statuses text_tree_parser(DiffData* diff_data, char* text);
 
