@@ -1,5 +1,7 @@
 #include "differentiation.h"
 
+#include "../dsl.h"
+
 static Status::Statuses diff_do_diff_oper_node_(DiffData* diff_data, TreeNode** node);
 
 static Status::Statuses diff_do_diff_addition_(DiffData* diff_data, TreeNode** node);
@@ -9,28 +11,25 @@ static Status::Statuses diff_do_diff_multiplication_(DiffData* diff_data, TreeNo
 static Status::Statuses diff_do_diff_vdu_udv_copy_(DiffData* diff_data, TreeNode** node, DiffOperNum oper,
                                                    size_t* subtree_size = nullptr);
 
-static Status::Statuses diff_do_diff_vdu_udv_diff_(DiffData* diff_data, TreeNode** node);
-
-static Status::Statuses diff_do_diff_set_copy_(DiffData* diff_data, TreeNode** dest, TreeNode* parent,
-                                               TreeNode* copy, size_t copy_size);
-
 static Status::Statuses diff_do_diff_copy_and_replace_with_mul_(DiffData* diff_data, TreeNode** original,
                                                                 TreeNode** copy_dest, size_t* copy_size);
-
-static Status::Statuses diff_do_diff_subtree_copy_(TreeNode* src, TreeNode** dest, size_t* size);
 
 static Status::Statuses diff_do_diff_division_(DiffData* diff_data, TreeNode** node);
 
 static Status::Statuses diff_do_diff_division_create_pow_node_(DiffData* diff_data, TreeNode** dest,
                                                                TreeNode* parent, TreeNode* src);
 
-static Status::Statuses diff_do_diff_pow_create_right_node_(DiffData* diff_data, TreeNode** node,
-                                                            TreeNode* f_copy, const size_t f_size,
-                                                            TreeNode* g_copy, const size_t g_size);
+static Status::Statuses diff_do_diff_pow_simple_v_(DiffData* diff_data, TreeNode** node,
+                                TreeNode* u_original, TreeNode* u_copy, const size_t u_size,
+                                TreeNode* v_original, TreeNode* v_copy, const size_t v_size);
 
-static Status::Statuses diff_do_diff_pow_create_left_node_(DiffData* diff_data, TreeNode** node,
-                                                           TreeNode* f_original, const size_t f_size,
-                                                           TreeNode* g_original, const size_t g_size);
+static Status::Statuses diff_do_diff_pow_not_simple_(DiffData* diff_data, TreeNode** node,
+                                TreeNode* u_original, TreeNode* u_copy, const size_t u_size,
+                                TreeNode* v_original, TreeNode* v_copy, const size_t v_size);
+
+static Status::Statuses diff_do_diff_pow_create_u_pow_v_(DiffData* diff_data, TreeNode** node,
+                                                           TreeNode* u_original, const size_t u_size,
+                                                           TreeNode* v_original, const size_t v_size);
 
 static Status::Statuses diff_do_diff_ln_(DiffData* diff_data, TreeNode** node);
 
@@ -44,13 +43,10 @@ static Status::Statuses diff_do_diff_complex_func_with_coeff_(DiffData* diff_dat
                                                               DiffOperNum main_oper, const double coeff,
                                                               DiffOperNum diffed_oper);
 
-static Status::Statuses diff_do_diff_copy_and_untie_original_(DiffData* diff_data, TreeNode** original,
-                                            TreeNode** original_ptr, TreeNode** copy_ptr, size_t* size);
 
-static Status::Statuses diff_do_diff_copy_(Tree* tree, TreeNode* src, TreeNode** dest,
-                                           TreeNode* parent);
+static Status::Statuses diff_do_diff_pow_(DiffData* diff_data, TreeNode** node);
 
-Status::Statuses diff_do_diff_pow_(DiffData* diff_data, TreeNode** node);
+
 
 Status::Statuses diff_do_diff(DiffData* diff_data) {
     assert(diff_data);
@@ -60,24 +56,23 @@ Status::Statuses diff_do_diff(DiffData* diff_data) {
     return Status::NORMAL_WORK;
 }
 
-#include "../dsl.h"
-
 Status::Statuses diff_do_diff_traversal(DiffData* diff_data, TreeNode** node) {
     assert(diff_data);
     assert(node);
     assert(*node);
 
-    if (dsl_node_is_num(*node)) {
-        dsl_node_set_elem_num(*node, 0);
+    if (NODE_IS_NUM(*node)) {
+        *NUM_VAL(*node) = 0;
         return Status::NORMAL_WORK;
     }
 
-    if (dsl_node_is_var(*node)) {
-        dsl_node_set_elem_num(*node, 1);
+    if (NODE_IS_VAR(*node)) {
+        *NODE_TYPE(*node) = DiffElemType::NUM;
+        *NUM_VAL(*node) = 1;
         return Status::NORMAL_WORK;
     }
 
-    if (dsl_node_is_oper(*node)) {
+    if (NODE_IS_OPER(*node)) {
         STATUS_CHECK(diff_do_diff_oper_node_(diff_data, node));
         return Status::NORMAL_WORK;
     }
@@ -85,10 +80,6 @@ Status::Statuses diff_do_diff_traversal(DiffData* diff_data, TreeNode** node) {
     assert(0 && "Invalid DiffElemType");
     return Status::TREE_ERROR;
 }
-
-
-
-
 
 #define OPER_CASE_(oper_, ...)  case DiffOperNum::oper_:        \
                                     STATUS_CHECK(__VA_ARGS__);  \
@@ -98,9 +89,9 @@ static Status::Statuses diff_do_diff_oper_node_(DiffData* diff_data, TreeNode** 
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(dsl_node_is_oper(*node));
+    assert(NODE_IS_OPER(*node));
 
-    switch (*dsl_node_oper_index(*node)) {
+    switch (*OPER_NUM(*node)) {
         OPER_CASE_(ADD,  diff_do_diff_addition_(diff_data, node));
         OPER_CASE_(SUB,  diff_do_diff_addition_(diff_data, node));
         OPER_CASE_(MUL,  diff_do_diff_multiplication_(diff_data, node));
@@ -125,11 +116,11 @@ static Status::Statuses diff_do_diff_addition_(DiffData* diff_data, TreeNode** n
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(*dsl_node_oper_index(*node) == DiffOperNum::ADD ||
-           *dsl_node_oper_index(*node) == DiffOperNum::SUB);
+    assert(*OPER_NUM(*node) == DiffOperNum::ADD ||
+           *OPER_NUM(*node) == DiffOperNum::SUB);
 
-    STATUS_CHECK(diff_do_diff_traversal(diff_data, dsl_node_left_child(*node)));
-    STATUS_CHECK(diff_do_diff_traversal(diff_data, dsl_node_right_child(*node)));
+    DO_DIFF(L(*node));
+    DO_DIFF(R(*node));
 
     return Status::NORMAL_WORK;
 }
@@ -138,26 +129,16 @@ static Status::Statuses diff_do_diff_multiplication_(DiffData* diff_data, TreeNo
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(*dsl_node_oper_index(*node) == DiffOperNum::MUL);
+    assert(*OPER_NUM(*node) == DiffOperNum::MUL);
 
-    STATUS_CHECK(diff_do_diff_vdu_udv_copy_(diff_data, node, DiffOperNum::ADD));
-
-    // TODO dump
-
-    STATUS_CHECK(diff_do_diff_vdu_udv_diff_(diff_data, node));
+    VdU_UdV_BUILD(DiffOperNum::ADD);
 
     // TODO dump
 
-    return Status::NORMAL_WORK;
-}
+    DO_DIFF(dU(*node));
+    DO_DIFF(dV(*node));
 
-static Status::Statuses diff_do_diff_vdu_udv_diff_(DiffData* diff_data, TreeNode** node) {
-    assert(diff_data);
-    assert(node);
-    assert(*node);
-
-    STATUS_CHECK(diff_do_diff_traversal(diff_data, dsl_vdu_udv_get_du(*node)));
-    STATUS_CHECK(diff_do_diff_traversal(diff_data, dsl_vdu_udv_get_dv(*node)));
+    // TODO dump
 
     return Status::NORMAL_WORK;
 }
@@ -168,65 +149,39 @@ static Status::Statuses diff_do_diff_vdu_udv_copy_(DiffData* diff_data, TreeNode
     assert(node);
     assert(*node);
 
-    *dsl_node_oper_index(*node) = oper;
+    *OPER_NUM(*node) = oper;
 
-    TreeNode* u_copy = nullptr;
-    size_t u_copy_size = 0;
+    COPY_AND_REPLACE_WITH_MUL(VdU(*node), u_copy, u_size);
 
-    STATUS_CHECK(diff_do_diff_copy_and_replace_with_mul_(diff_data, dsl_vdu_udv_get_vdu(*node),
-                                                         &u_copy, &u_copy_size));
+    COPY_AND_REPLACE_WITH_MUL(UdV(*node), v_copy, v_size);
 
-    TreeNode* v_copy = nullptr;
-    size_t v_copy_size = 0;
+    *V(*node) = INSERT_SUBTREE(*VdU(*node), v_copy, v_size);
 
-    STATUS_CHECK(diff_do_diff_copy_and_replace_with_mul_(diff_data, dsl_vdu_udv_get_udv(*node),
-                                                         &v_copy, &v_copy_size));
-
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_vdu_udv_get_v(*node), *dsl_vdu_udv_get_vdu(*node),
-                                                   v_copy, v_copy_size));
-
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_vdu_udv_get_u(*node), *dsl_vdu_udv_get_udv(*node),
-                                                   u_copy, u_copy_size));
+    *U(*node) = INSERT_SUBTREE(*UdV(*node), u_copy, u_size);
 
     if (subtree_size != nullptr)
         // size(u) + size(dv) + size(v) + size(du) + mul_node + mul_node + parent
-        *subtree_size = v_copy_size * 2 + u_copy_size * 2 + 2 + 1;
-
-    return Status::NORMAL_WORK;
-}
-
-static Status::Statuses diff_do_diff_set_copy_(DiffData* diff_data, TreeNode** dest, TreeNode* parent,
-                                               TreeNode* copy, size_t copy_size) {
-    assert(diff_data);
-    assert(dest);
-    assert(*dest == nullptr);
-    assert(copy);
-
-    copy->parent = parent;
-    *dest = copy;
-    diff_data->tree.size += copy_size;
+        *subtree_size = v_size * 2 + u_size * 2 + 2 + 1;
 
     return Status::NORMAL_WORK;
 }
 
 static Status::Statuses diff_do_diff_copy_and_replace_with_mul_(DiffData* diff_data, TreeNode** original,
                                                                 TreeNode** copy_dest, size_t* copy_size) {
+    assert(diff_data);
+    assert(original);
+    assert(*original);
+    assert(copy_dest);
+    assert(*copy_dest == nullptr);
+    assert(copy_size);
 
-    TreeNode* original_tmp = *original;
+    COPY_SUBTREE(*original, copy_dest, copy_size);
 
-    STATUS_CHECK(diff_do_diff_subtree_copy_(original_tmp, copy_dest, copy_size));
+    TreeNode* original_tmp = UNTIE_SUBTREE(*original, *copy_size);
 
-    diff_data->tree.size -= *copy_size;
-    *original = nullptr;
+    TREE_INSERT(original, original_tmp->parent, OPER_ELEM(DiffOperNum::MUL));
 
-    DiffElem mul_node = {.type = DiffElemType::OPER, .data = {.oper = DiffOperNum::MUL}};
-
-    if (tree_insert(&diff_data->tree, original, original_tmp->parent, &mul_node) != Tree::OK) {
-        return Status::TREE_ERROR;
-    }
-
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_left_child(*original), *original,
-                                        original_tmp, *copy_size));
+    *L(*original) = INSERT_SUBTREE(*original, original_tmp, *copy_size);
 
     return Status::NORMAL_WORK;
 }
@@ -235,28 +190,25 @@ static Status::Statuses diff_do_diff_division_(DiffData* diff_data, TreeNode** n
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(*dsl_node_oper_index(*node) == DiffOperNum::DIV);
+    assert(*OPER_NUM(*node) == DiffOperNum::DIV);
 
     size_t subtree_size = 0;
-    STATUS_CHECK(diff_do_diff_vdu_udv_copy_(diff_data, node, DiffOperNum::SUB, &subtree_size));
+    VdU_UdV_BUILD_AND_COUNT_SIZE(DiffOperNum::SUB, &subtree_size);
 
-    TreeNode* udv_vdu_node = *node;
-    diff_data->tree.size -= subtree_size;
-    *node = nullptr;
+    TreeNode* udv_vdu_node = UNTIE_SUBTREE(*node, subtree_size);
 
-    DiffElem div_elem = {.type = DiffElemType::OPER, .data = {.oper = DiffOperNum::DIV}};
-    if (tree_insert(&diff_data->tree, node, udv_vdu_node->parent, &div_elem) != Tree::OK)
-        return Status::TREE_ERROR;
+    TREE_INSERT(node, udv_vdu_node->parent, OPER_ELEM(DiffOperNum::DIV));
 
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_left_child(*node), *node,
-                                        udv_vdu_node, subtree_size));
+    *L(*node) = INSERT_SUBTREE(*node, udv_vdu_node, subtree_size);
 
-    STATUS_CHECK(diff_do_diff_division_create_pow_node_(diff_data, dsl_node_right_child(*node),
-                                                        *node, *dsl_vdu_udv_get_v(udv_vdu_node)));
+
+    STATUS_CHECK(diff_do_diff_division_create_pow_node_(diff_data, R(*node), *node,
+                                                        *V(udv_vdu_node)));
 
     // TODO dump
 
-    STATUS_CHECK(diff_do_diff_vdu_udv_diff_(diff_data, dsl_node_left_child(*node)));
+    DO_DIFF(dU(*L(*node)));
+    DO_DIFF(dV(*L(*node)));
 
     // TODO dump
 
@@ -271,138 +223,159 @@ static Status::Statuses diff_do_diff_division_create_pow_node_(DiffData* diff_da
     assert(parent);
     assert(src);
 
-    DiffElem pow_elem     = {.type = DiffElemType::OPER, .data = {.oper = DiffOperNum::POW}};
-    DiffElem pow_num_elem = {.type = DiffElemType::NUM,  .data = {.num = 2}};
+    TREE_INSERT(dest, parent, OPER_ELEM(DiffOperNum::POW));
 
-    if (tree_insert(&diff_data->tree, dest, parent, &pow_elem) != Tree::OK)
-        return Status::TREE_ERROR;
-
-    if (tree_insert(&diff_data->tree, dsl_node_right_child(*dest), *dest, &pow_num_elem) != Tree::OK)
-        return Status::TREE_ERROR;
+    TREE_INSERT(R(*dest), *dest, NUM_ELEM(2));
 
     TreeNode* copy = nullptr;
     size_t copy_size = 0;
-    STATUS_CHECK(diff_do_diff_subtree_copy_(src, &copy, &copy_size));
+    COPY_SUBTREE(src, &copy, &copy_size);
 
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_left_child(*dest), *dest, copy, copy_size));
+    *L(*dest) = INSERT_SUBTREE(*dest, copy, copy_size);
 
     return Status::NORMAL_WORK;
 }
 
-Status::Statuses diff_do_diff_pow_(DiffData* diff_data, TreeNode** node) {
+static Status::Statuses diff_do_diff_pow_(DiffData* diff_data, TreeNode** node) {
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(*dsl_node_oper_index(*node) == DiffOperNum::POW);
+    assert(*OPER_NUM(*node) == DiffOperNum::POW);
 
-    // f^g
+    // u^v
 
-    TreeNode* f_original = nullptr;
-    TreeNode* f_copy = nullptr;
-    size_t f_size = 0;
+    TreeNode* u_copy = nullptr;
+    size_t u_size = 0;
+    bool u_is_simple = false;
+    COPY_SUBTREE_AND_CHECK_SIMPLICITY(*L(*node), &u_copy, &u_size, &u_is_simple);
+    TreeNode* u_original = UNTIE_SUBTREE(*L(*node), u_size);
 
-    STATUS_CHECK(diff_do_diff_copy_and_untie_original_(diff_data, dsl_node_left_child(*node),
-                                                       &f_original, &f_copy, &f_size));
 
-    TreeNode* g_original = nullptr;
-    TreeNode* g_copy = nullptr;
-    size_t g_size = 0;
+    TreeNode* v_copy = nullptr;
+    size_t v_size = 0;
+    bool v_is_simple = false;
+    COPY_SUBTREE_AND_CHECK_SIMPLICITY(*R(*node), &v_copy, &v_size, &v_is_simple);
+    TreeNode* v_original = UNTIE_SUBTREE(*R(*node), v_size);
 
-    STATUS_CHECK(diff_do_diff_copy_and_untie_original_(diff_data, dsl_node_right_child(*node),
-                                                       &g_original, &g_copy, &g_size));
+    if (u_is_simple && v_is_simple) { //< n^n
+        DELETE_SUBTREE_COPY(&u_copy, u_size);
+        DELETE_SUBTREE_COPY(&v_copy, v_size);
 
-    *dsl_node_oper_index(*node) = DiffOperNum::MUL;
+        TREE_REPLACE_SUBTREE_WITH_NUM(node, 0);
 
-    STATUS_CHECK(diff_do_diff_pow_create_left_node_(diff_data, node, f_original, f_size,
-                                                                     g_original, g_size));
+        // TODO dump
 
-    STATUS_CHECK(diff_do_diff_pow_create_right_node_(diff_data, node, f_copy, f_size,
-                                                                      g_copy, g_size));
+        return Status::NORMAL_WORK;
+    }
+
+    *OPER_NUM(*node) = DiffOperNum::MUL;
+
+    if (v_is_simple) { //< x^n
+        STATUS_CHECK(diff_do_diff_pow_simple_v_(diff_data, node, u_original, u_copy, u_size,
+                                                                 v_original, v_copy, v_size));
+        return Status::NORMAL_WORK;
+    }
+
+    // n^x or x^x
+    STATUS_CHECK(diff_do_diff_pow_not_simple_(diff_data, node, u_original, u_copy, u_size,
+                                                               v_original, v_copy, v_size));
+
+    return Status::NORMAL_WORK;
+}
+
+static Status::Statuses diff_do_diff_pow_simple_v_(DiffData* diff_data, TreeNode** node,
+                                TreeNode* u_original, TreeNode* u_copy, const size_t u_size,
+                                TreeNode* v_original, TreeNode* v_copy, const size_t v_size) {
+    assert(diff_data);
+    assert(node);
+    assert(*node);
+    assert(u_original);
+    assert(u_copy);
+    assert(v_original);
+    assert(v_copy);
+    // x^n
+
+    *L(*node) = INSERT_SUBTREE(*node, v_copy, v_size);
+
+    TREE_INSERT(R(*node), *node, OPER_ELEM(DiffOperNum::MUL));
+    // result: v * (*)
+
+    *R(*R(*node)) = INSERT_SUBTREE(*R(*node), u_copy, u_size);
+
+    TreeNode**  pow_node = L(*R(*node));
+    TREE_INSERT(pow_node, *R(*node), OPER_ELEM(DiffOperNum::POW));
+    // result: v * ((^) * u')
+
+    *L(*pow_node) = INSERT_SUBTREE(*pow_node, u_original, u_size);
+
+    TREE_INSERT(R(*pow_node), *pow_node, OPER_ELEM(DiffOperNum::SUB));
+    // result: v * ((u ^ (-)) * u')
+
+    *L(*R(*pow_node)) = INSERT_SUBTREE(*R(*pow_node), v_original, v_size);
+
+    TREE_INSERT(R(*R(*pow_node)), *R(*pow_node), NUM_ELEM(1));
+    // result: v * ((u ^ (v - 1)) * u'
+
+    // TODO DUMP
+
+    DO_DIFF(R(*R(*node)));
+
+    // TODO DUMP
+
+    return Status::NORMAL_WORK;
+}
+
+static Status::Statuses diff_do_diff_pow_not_simple_(DiffData* diff_data, TreeNode** node,
+                                TreeNode* u_original, TreeNode* u_copy, const size_t u_size,
+                                TreeNode* v_original, TreeNode* v_copy, const size_t v_size) {
+    assert(diff_data);
+    assert(node);
+    assert(*node);
+    assert(u_original);
+    assert(u_copy);
+    assert(v_original);
+    assert(v_copy);
+    // n^x or x^x
+
+    STATUS_CHECK(diff_do_diff_pow_create_u_pow_v_(diff_data, node, u_original, u_size,
+                                                                   v_original, v_size));
+
+    TreeNode** r_node = R(*node);
+
+    TREE_INSERT(r_node, *node, OPER_ELEM(DiffOperNum::MUL));
+
+    *L(*r_node) = INSERT_SUBTREE(*r_node, v_copy, v_size);
+
+
+    TreeNode** ln_node = R(*r_node);
+
+    TREE_INSERT(ln_node, *r_node, OPER_ELEM(DiffOperNum::LN));
+
+    *R(*ln_node) = INSERT_SUBTREE(*ln_node, u_copy, u_size);;
 
     // TODO dump
 
-    STATUS_CHECK(diff_do_diff_traversal(diff_data, dsl_node_right_child(*node)));
+    DO_DIFF(R(*node));
 
     // TODO dump
 
     return Status::NORMAL_WORK;
 }
 
-static Status::Statuses diff_do_diff_pow_create_right_node_(DiffData* diff_data, TreeNode** node,
-                                                            TreeNode* f_copy, const size_t f_size,
-                                                            TreeNode* g_copy, const size_t g_size) {
+static Status::Statuses diff_do_diff_pow_create_u_pow_v_(DiffData* diff_data, TreeNode** node,
+                                                           TreeNode* u_original, const size_t u_size,
+                                                           TreeNode* v_original, const size_t v_size) {
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(f_copy);
-    assert(g_copy);
+    assert(u_original);
+    assert(v_original);
 
-    TreeNode* r_node = *dsl_node_right_child(*node);
+    TREE_INSERT(L(*node), *node, OPER_ELEM(DiffOperNum::POW));
 
-    DiffElem mul_elem = {.type = DiffElemType::OPER, .data = {.oper = DiffOperNum::MUL}};
+    *L(*L(*node)) = INSERT_SUBTREE(*L(*node), u_original, u_size);
 
-    if (tree_insert(&diff_data->tree, dsl_node_right_child(*node), *node, &mul_elem) != Tree::OK) {
-        return Status::TREE_ERROR;
-    }
-
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_left_child(r_node), r_node,
-                                        g_copy, g_size));
-
-    DiffElem ln_elem = {.type = DiffElemType::OPER, .data = {.oper = DiffOperNum::LN}};
-
-    if (tree_insert(&diff_data->tree, dsl_node_right_child(r_node), r_node, &ln_elem) != Tree::OK) {
-        return Status::TREE_ERROR;
-    }
-
-    TreeNode* ln_node = *dsl_node_right_child(r_node);
-
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_right_child(ln_node), ln_node,
-                                        f_copy, f_size));
-
-    return Status::NORMAL_WORK;
-}
-
-static Status::Statuses diff_do_diff_pow_create_left_node_(DiffData* diff_data, TreeNode** node,
-                                                           TreeNode* f_original, const size_t f_size,
-                                                           TreeNode* g_original, const size_t g_size) {
-    assert(diff_data);
-    assert(node);
-    assert(*node);
-    assert(f_original);
-    assert(g_original);
-
-    TreeNode* l_node = *dsl_node_left_child(*node);
-
-    DiffElem pow_node = {.type = DiffElemType::OPER, .data = {.oper = DiffOperNum::POW}};
-
-    if (tree_insert(&diff_data->tree, dsl_node_left_child(*node), *node, &pow_node) != Tree::OK) {
-        return Status::TREE_ERROR;
-    }
-
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_left_child(l_node), l_node,
-                                        f_original, f_size));
-
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_right_child(l_node), l_node,
-                                        g_original, g_size));
-
-    return Status::NORMAL_WORK;
-}
-
-static Status::Statuses diff_do_diff_copy_and_untie_original_(DiffData* diff_data, TreeNode** original,
-                                            TreeNode** original_ptr, TreeNode** copy_ptr, size_t* size) {
-    assert(diff_data);
-    assert(original);
-    assert(original_ptr);
-    assert(*original_ptr == nullptr);
-    assert(copy_ptr);
-    assert(*copy_ptr == nullptr);
-    assert(size);
-
-    STATUS_CHECK(diff_do_diff_subtree_copy_(*original, copy_ptr, size));
-
-    *original_ptr = *original;
-    *original = nullptr;
-    diff_data->tree.size -= *size;
+    *R(*L(*node)) = INSERT_SUBTREE(*L(*node), v_original, v_size);
 
     return Status::NORMAL_WORK;
 }
@@ -411,20 +384,19 @@ static Status::Statuses diff_do_diff_ln_(DiffData* diff_data, TreeNode** node) {
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(*dsl_node_oper_index(*node) == DiffOperNum::LN);
+    assert(*OPER_NUM(*node) == DiffOperNum::LN);
 
-    *dsl_node_oper_index(*node) = DiffOperNum::DIV;
+    *OPER_NUM(*node) = DiffOperNum::DIV;
 
     TreeNode* copy = nullptr;
     size_t copy_size = 0;
-    STATUS_CHECK(diff_do_diff_subtree_copy_(*dsl_node_right_child(*node), &copy, &copy_size));
+    COPY_SUBTREE(*R(*node), &copy, &copy_size);
 
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_left_child(*node), *node,
-                                        copy, copy_size));
+    *L(*node) = INSERT_SUBTREE(*node, copy, copy_size);
 
     // TODO dump
 
-    STATUS_CHECK(diff_do_diff_traversal(diff_data, dsl_node_left_child(*node)));
+    DO_DIFF(L(*node));
 
     // TODO dump
 
@@ -435,14 +407,14 @@ static Status::Statuses diff_do_diff_sqrt_(DiffData* diff_data, TreeNode** node)
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(*dsl_node_oper_index(*node) == DiffOperNum::SQRT);
+    assert(*OPER_NUM(*node) == DiffOperNum::SQRT);
 
     STATUS_CHECK(diff_do_diff_complex_func_with_coeff_(diff_data, *node, DiffOperNum::DIV, 2,
                                                                          DiffOperNum::SQRT));
 
     // TODO dump
 
-    STATUS_CHECK(diff_do_diff_traversal(diff_data, dsl_node_left_child(*node)));
+    DO_DIFF(R(*node));
 
     // TODO dump
 
@@ -453,30 +425,24 @@ static Status::Statuses diff_do_diff_sin_(DiffData* diff_data, TreeNode** node) 
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(*dsl_node_oper_index(*node) == DiffOperNum::SIN);
+    assert(*OPER_NUM(*node) == DiffOperNum::SIN);
 
-    *dsl_node_oper_index(*node) = DiffOperNum::MUL;
+    *OPER_NUM(*node) = DiffOperNum::MUL;
 
-    TreeNode* original = nullptr;
     TreeNode* copy = nullptr;
     size_t size = 0;
-    STATUS_CHECK(diff_do_diff_copy_and_untie_original_(diff_data, dsl_node_right_child(*node),
-                                                       &original, &copy, &size));
+    COPY_SUBTREE(*R(*node), &copy, &size);
 
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_left_child(*node), *node,
-                                        copy, size));
+    TreeNode* original = UNTIE_SUBTREE(*R(*node), size);
+    *L(*node) = INSERT_SUBTREE(*node, copy, size);
 
-    DiffElem cos_elem = {.type = DiffElemType::OPER, .data = {.oper = DiffOperNum::COS}};
-    if (tree_insert(&diff_data->tree, dsl_node_right_child(*node), *node, &cos_elem) != Tree::OK)
-        return Status::NORMAL_WORK;
+    TREE_INSERT(R(*node), *node, OPER_ELEM(DiffOperNum::COS));
 
-    TreeNode* r_node = *dsl_node_right_child(*node);
+    *R(*R(*node)) = INSERT_SUBTREE(*R(*node), original, size);
 
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_right_child(r_node), r_node,
-                                        original, size));
     // TODO dump
 
-    STATUS_CHECK(diff_do_diff_traversal(diff_data, dsl_node_left_child(*node)));
+    DO_DIFF(L(*node));
 
     // TODO dump
 
@@ -487,45 +453,21 @@ static Status::Statuses diff_do_diff_cos_(DiffData* diff_data, TreeNode** node) 
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(*dsl_node_oper_index(*node) == DiffOperNum::COS);
+    assert(*OPER_NUM(*node) == DiffOperNum::COS);
 
     STATUS_CHECK(diff_do_diff_complex_func_with_coeff_(diff_data, *node, DiffOperNum::MUL, -1,
                                                                          DiffOperNum::SIN));
 
     // TODO dump
 
-    STATUS_CHECK(diff_do_diff_traversal(diff_data, dsl_node_left_child(*node)));
+    DO_DIFF(L(*node));
 
     // TODO dump
 
     return Status::NORMAL_WORK;
 }
 
-static Status::Statuses diff_do_diff_subtree_copy_(TreeNode* src, TreeNode** dest, size_t* size) {
-    assert(src);
-    assert(dest);
-    assert(*dest == nullptr);
-    assert(size);
 
-    Tree copy = {};
-    if (TREE_CTOR(&copy, sizeof(DiffElem), &diff_elem_dtor,
-                                           &diff_elem_verify,
-                                           &diff_elem_str_val) != Tree::OK)
-        return Status::TREE_ERROR;
-
-    STATUS_CHECK(diff_do_diff_copy_(&copy, src, &copy.root, nullptr));
-
-    *size = copy.size;
-    *dest = copy.root;
-
-    copy.size = 0;
-    copy.root = nullptr;
-
-    if (tree_dtor(&copy) != Tree::OK)
-        return Status::TREE_ERROR;
-
-    return Status::NORMAL_WORK;
-}
 
 static Status::Statuses diff_do_diff_complex_func_with_coeff_(DiffData* diff_data, TreeNode* node,
                                                               DiffOperNum main_oper, const double coeff,
@@ -533,56 +475,26 @@ static Status::Statuses diff_do_diff_complex_func_with_coeff_(DiffData* diff_dat
     assert(diff_data);
     assert(node);
 
-    *dsl_node_oper_index(node) = main_oper;
+    *OPER_NUM(node) = main_oper;
 
-    TreeNode* original = nullptr;
+
     TreeNode* copy = nullptr;
     size_t size = 0;
-    STATUS_CHECK(diff_do_diff_copy_and_untie_original_(diff_data, dsl_node_right_child(node),
-                                                       &original, &copy, &size));
+    COPY_SUBTREE(*R(node), &copy, &size);
 
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_left_child(node), node, copy, size));
+    TreeNode* original = UNTIE_SUBTREE(*R(node), size);
 
-    DiffElem mul_elem = {.type = DiffElemType::OPER, .data = {.oper = DiffOperNum::MUL}};
-    if (tree_insert(&diff_data->tree, dsl_node_right_child(node), node, &mul_elem) != Tree::OK)
-        return Status::TREE_ERROR;
+    *L(node) = INSERT_SUBTREE(node, copy, size);
 
-    TreeNode* r_node = *dsl_node_right_child(node);
+    TREE_INSERT(R(node), node, OPER_ELEM(DiffOperNum::MUL));
 
-    DiffElem mul_num_elem = {.type = DiffElemType::NUM, .data = {.num = coeff}};
-    if (tree_insert(&diff_data->tree, dsl_node_left_child(r_node), r_node, &mul_num_elem) != Tree::OK)
-        return Status::TREE_ERROR;
 
-    DiffElem oper_elem = {.type = DiffElemType::OPER, .data = {.oper = diffed_oper}};
-    if (tree_insert(&diff_data->tree, dsl_node_right_child(r_node), r_node, &oper_elem) != Tree::OK)
-        return Status::TREE_ERROR;
+    TREE_INSERT(L(*R(node)), *R(node), NUM_ELEM(coeff));
 
-    TreeNode* diffed_node = *dsl_node_right_child(r_node);
+    TREE_INSERT(R(*R(node)), *R(node), OPER_ELEM(diffed_oper));
 
-    STATUS_CHECK(diff_do_diff_set_copy_(diff_data, dsl_node_right_child(diffed_node), diffed_node,
-                                        original, size));
+    *R(*R(*R(node))) = INSERT_SUBTREE(*R(*R(node)), original, size);
 
     return Status::NORMAL_WORK;
 }
 
-static Status::Statuses diff_do_diff_copy_(Tree* tree, TreeNode* src, TreeNode** dest,
-                                           TreeNode* parent) {
-    assert(tree);
-    assert(src);
-    assert(dest);
-    assert(*dest == nullptr);
-
-    if (tree_insert(tree, dest, parent, dsl_node_elem(src)) != Tree::OK)
-        return Status::TREE_ERROR;
-
-    if (dsl_node_is_num(src) || dsl_node_is_var(src))
-        return Status::NORMAL_WORK;
-
-
-    if (dsl_node_is_oper(src) && dsl_node_oper(src)->type != UNARY)
-        STATUS_CHECK(diff_do_diff_copy_(tree, src->left, &(*dest)->left, *dest));
-
-    STATUS_CHECK(diff_do_diff_copy_(tree, src->right, &(*dest)->right, *dest));
-
-    return Status::NORMAL_WORK;
-}

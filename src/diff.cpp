@@ -19,6 +19,10 @@ Status::Statuses diff_proccess(const char* input_filename) {
 
     TREE_DUMP(&diff_data.tree);
 
+    STATUS_CHECK(diff_simplify(&diff_data));
+
+    TREE_DUMP(&diff_data.tree);
+
     LOCAL_DTOR_();
 
     return Status::NORMAL_WORK;

@@ -10,4 +10,7 @@
 
 Status::Statuses diff_eval(DiffData* diff_data, TreeNode** node, double* result);
 
+Status::Statuses diff_eval_calc(const double left_val, const double right_val,
+                                DiffOperNum oper, double* result);
+
 #endif //< #ifndef DIFF_MATH_EVAL_H_

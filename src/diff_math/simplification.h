@@ -5,9 +5,11 @@
 
 #include "../diff_objects.h"
 #include "../utils/statuses.h"
+#include "eval.h"
 
 #include "../config.h"
 #include TREE_INCLUDE
+#include "../TreeAddon/TreeAddon.h"
 
 Status::Statuses diff_simplify(DiffData* diff_data);
 

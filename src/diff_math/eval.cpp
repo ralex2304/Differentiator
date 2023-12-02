@@ -1,6 +1,9 @@
 #include "eval.h"
 
+#include "../dsl.h"
+
 static Status::Statuses diff_eval_oper_(DiffData* diff_data, TreeNode** node, double* result);
+
 
 Status::Statuses diff_eval(DiffData* diff_data, TreeNode** node, double* result) {
     assert(diff_data);
@@ -8,12 +11,12 @@ Status::Statuses diff_eval(DiffData* diff_data, TreeNode** node, double* result)
     assert(*node);
     assert(result);
 
-    switch (((DiffElem*)(*node)->elem)->type) {
+    switch (*NODE_TYPE(*node)) {
         case DiffElemType::NUM:
-            *result = ((DiffElem*)(*node)->elem)->data.num;
+            *result = *NUM_VAL(*node);
             break;
         case DiffElemType::VAR:
-            *result = diff_data->vars.arr[((DiffElem*)(*node)->elem)->data.var].val;
+            *result = *VAR_VAL(*node);
             break;
         case DiffElemType::OPER:
             STATUS_CHECK(diff_eval_oper_(diff_data, node, result));
@@ -26,39 +29,46 @@ Status::Statuses diff_eval(DiffData* diff_data, TreeNode** node, double* result)
     return Status::NORMAL_WORK;
 }
 
-
-#define OPER_CASE_(oper_, result_)  case DiffOperNum::oper_:                \
-                                        *result = result_;                  \
-                                        break;
-
 static Status::Statuses diff_eval_oper_(DiffData* diff_data, TreeNode** node, double* result) {
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(((DiffElem*)(*node)->elem)->type == DiffElemType::OPER);
-    assert(((DiffElem*)(*node)->elem)->data.oper != DiffOperNum::ERR);
+    assert(NODE_IS_OPER(*node));
     assert(result);
 
     double  left_res = NAN;
     double right_res = NAN;
 
-    if (DIFF_OPERS[(size_t)(((DiffElem*)(*node)->elem)->data.oper)].type != UNARY)
-        STATUS_CHECK(diff_eval(diff_data, &(*node)->left, &left_res));
+    if (OPER(*node)->type != UNARY)
+        STATUS_CHECK(diff_eval(diff_data, L(*node), &left_res));
 
-    STATUS_CHECK(diff_eval(diff_data, &(*node)->right, &right_res));
+    STATUS_CHECK(diff_eval(diff_data, R(*node), &right_res));
 
-    switch ((((DiffElem*)(*node)->elem)->data.oper)) {
+    STATUS_CHECK(diff_eval_calc(left_res, right_res, *OPER_NUM(*node), result));
 
-        OPER_CASE_(ADD,  left_res + right_res);
-        OPER_CASE_(SUB,  left_res - right_res);
-        OPER_CASE_(MUL,  left_res * right_res);
-        OPER_CASE_(DIV,  left_res / right_res);
-        OPER_CASE_(POW,  pow(left_res, right_res));
+    return Status::NORMAL_WORK;
+}
 
-        OPER_CASE_(LN,   log(right_res));
-        OPER_CASE_(SQRT, sqrt(right_res));
-        OPER_CASE_(SIN,  sin(right_res));
-        OPER_CASE_(COS,  cos(right_res));
+#define OPER_CASE_(oper_, result_)  case DiffOperNum::oper_:                \
+                                        *result = result_;                  \
+                                        break;
+
+Status::Statuses diff_eval_calc(const double left_val, const double right_val,
+                                 DiffOperNum oper, double* result) {
+    assert(result);
+
+    switch (oper) {
+
+        OPER_CASE_(ADD,  left_val + right_val);
+        OPER_CASE_(SUB,  left_val - right_val);
+        OPER_CASE_(MUL,  left_val * right_val);
+        OPER_CASE_(DIV,  left_val / right_val);
+        OPER_CASE_(POW,  pow(left_val, right_val));
+
+        OPER_CASE_(LN,   log(right_val));
+        OPER_CASE_(SQRT, sqrt(right_val));
+        OPER_CASE_(SIN,  sin(right_val));
+        OPER_CASE_(COS,  cos(right_val));
 
         case DiffOperNum::ERR:
         default:
@@ -68,3 +78,4 @@ static Status::Statuses diff_eval_oper_(DiffData* diff_data, TreeNode** node, do
 
     return Status::NORMAL_WORK;
 }
+#undef OPER_CASE_

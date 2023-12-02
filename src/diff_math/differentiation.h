@@ -8,6 +8,7 @@
 
 #include "../config.h"
 #include TREE_INCLUDE
+#include "../TreeAddon/TreeAddon.h"
 
 Status::Statuses diff_do_diff(DiffData* diff_data);
 
