@@ -17,6 +17,11 @@ Status::Statuses diff_eval(DiffData* diff_data, TreeNode** node, double* result)
             break;
         case DiffElemType::VAR:
             *result = *VAR_VAL(*node);
+
+            if (isnan(*result)) {
+                STATUS_CHECK(interface_throw_err_var_value_not_given(*VAR_NAME(*node)));
+                return Status::INPUT_ERROR;
+            }
             break;
         case DiffElemType::OPER:
             STATUS_CHECK(diff_eval_oper_(diff_data, node, result));
@@ -33,13 +38,13 @@ static Status::Statuses diff_eval_oper_(DiffData* diff_data, TreeNode** node, do
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(NODE_IS_OPER(*node));
+    assert(TYPE_IS_OPER(*node));
     assert(result);
 
     double  left_res = NAN;
     double right_res = NAN;
 
-    if (OPER(*node)->type != UNARY)
+    if (IS_BINARY(*node))
         STATUS_CHECK(diff_eval(diff_data, L(*node), &left_res));
 
     STATUS_CHECK(diff_eval(diff_data, R(*node), &right_res));

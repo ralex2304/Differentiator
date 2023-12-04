@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <math.h>
 
 #ifdef unix
 
@@ -44,6 +45,14 @@ char* ui_get_string(FILE* stream = stdin);
  * @return char
  */
 char ui_get_char_no_enter(FILE* stream = stdin);
+
+/**
+ * @brief Gets double from stream. If empty, returns NAN. If error returns INF
+ *
+ * @param stream
+ * @return double empty - NAN, error - INF
+ */
+double ui_get_double_or_NAN(FILE* stream = stdin);
 
 /**
  * @brief Flushes input stream

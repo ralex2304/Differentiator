@@ -21,6 +21,8 @@ enum class ArgsMode {
  */
 struct ArgsVars {
     const char* input_filename = nullptr;
+    const char* tex_filename = nullptr;
+    bool substitute_vals = false;
 };
 
 /**
@@ -61,6 +63,34 @@ ArgsMode print_help(const Argument args_dict[], const int args_dict_len,
  */
 ArgsMode read_input_filename(const Argument args_dict[], const int args_dict_len,
                              int* arg_i, int argc, char* argv[], ArgsVars* args_vars);
+
+/**
+ * @brief Reads tex file name from console
+ *
+ * @param[in] args_dict
+ * @param[in] args_dict_len
+ * @param[in] arg_i number of current argument
+ * @param[in] argc  int main() argc
+ * @param[in] argv  int main() argv
+ * @param[out] args_vars
+ * @return ArgsMode
+ */
+ArgsMode read_tex_filename(const Argument args_dict[], const int args_dict_len,
+                           int* arg_i, int argc, char* argv[], ArgsVars* args_vars);
+
+/**
+ * @brief Enables substitute_vals
+ *
+ * @param[in] args_dict
+ * @param[in] args_dict_len
+ * @param[in] arg_i number of current argument
+ * @param[in] argc  int main() argc
+ * @param[in] argv  int main() argv
+ * @param[out] args_vars
+ * @return ArgsMode
+ */
+ArgsMode enable_substitute_vals(const Argument args_dict[], const int args_dict_len,
+                                int* arg_i, int argc, char* argv[], ArgsVars* args_vars);
 
 /**
  * @brief Parses console arguments

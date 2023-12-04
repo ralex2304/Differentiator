@@ -2,11 +2,14 @@
 
 #include "../dsl.h"
 
-static Status::Statuses tree_copy_subtree_traversal_(Tree* tree, TreeNode* src, TreeNode** dest,
-                                                     TreeNode* parent, bool* is_simple);
+static Status::Statuses tree_copy_subtree_traversal_(DiffData* diff_data, Tree* tree, TreeNode* src,
+                                                     TreeNode** dest, TreeNode* parent,
+                                                     bool* is_simple);
 
-static Status::Statuses tree_copy_subtree_traversal_(Tree* tree, TreeNode* src, TreeNode** dest,
-                                                     TreeNode* parent, bool* is_simple) {
+static Status::Statuses tree_copy_subtree_traversal_(DiffData* diff_data, Tree* tree, TreeNode* src,
+                                                     TreeNode** dest, TreeNode* parent,
+                                                     bool* is_simple) {
+    assert(diff_data);
     assert(tree);
     assert(src);
     assert(dest);
@@ -17,11 +20,11 @@ static Status::Statuses tree_copy_subtree_traversal_(Tree* tree, TreeNode* src, 
     if (tree_insert(tree, dest, parent, ELEM(src)) != Tree::OK)
         return Status::TREE_ERROR;
 
-    if (NODE_IS_NUM(src)) {
+    if (VAL_IS_SIMPLE(src)) {
         *is_simple = true;
         return Status::NORMAL_WORK;
 
-    } else if (NODE_IS_VAR(src)) {
+    } else if (!TYPE_IS_OPER(src)) {
         *is_simple = false;
         return Status::NORMAL_WORK;
     }
@@ -29,20 +32,23 @@ static Status::Statuses tree_copy_subtree_traversal_(Tree* tree, TreeNode* src, 
     bool is_l_simple = false;
     bool is_r_simple = false;
 
-    if (NODE_IS_OPER(src) && OPER(src)->type != UNARY)
-        STATUS_CHECK(tree_copy_subtree_traversal_(tree, src->left, L(*dest), *dest, &is_l_simple));
+    if (TYPE_IS_OPER(src) && IS_BINARY(src))
+        STATUS_CHECK(tree_copy_subtree_traversal_(diff_data, tree, src->left, L(*dest), *dest,
+                                                  &is_l_simple));
     else
         is_l_simple = true;
 
-    STATUS_CHECK(tree_copy_subtree_traversal_(tree, src->right, R(*dest), *dest, &is_r_simple));
+    STATUS_CHECK(tree_copy_subtree_traversal_(diff_data, tree, src->right, R(*dest), *dest,
+                                              &is_r_simple));
 
     *is_simple = is_l_simple && is_r_simple;
 
     return Status::NORMAL_WORK;
 }
 
-Status::Statuses tree_copy_subtree(TreeNode* src, TreeNode** dest, size_t* size,
+Status::Statuses tree_copy_subtree(DiffData* diff_data, TreeNode* src, TreeNode** dest, size_t* size,
                                    bool* is_simple) {
+    assert(diff_data);
     assert(src);
     assert(dest);
     assert(*dest == nullptr);
@@ -57,7 +63,7 @@ Status::Statuses tree_copy_subtree(TreeNode* src, TreeNode** dest, size_t* size,
 
 
     bool placeholder = false;
-    STATUS_CHECK(tree_copy_subtree_traversal_(&copy, src, &copy.root, nullptr,
+    STATUS_CHECK(tree_copy_subtree_traversal_(diff_data, &copy, src, &copy.root, nullptr,
                                               is_simple != nullptr ? is_simple
                                                                    : &placeholder));
 
@@ -74,13 +80,14 @@ Status::Statuses tree_copy_subtree(TreeNode* src, TreeNode** dest, size_t* size,
 }
 
 
-Status::Statuses tree_dtor_subtree_copy(Tree* tree, TreeNode** node) {
+Status::Statuses tree_dtor_untied_subtree(Tree* tree, TreeNode** node) {
+    assert(tree);
     assert(node);
 
     if (*node == nullptr) return Status::NORMAL_WORK;
 
-    STATUS_CHECK(tree_dtor_subtree_copy(tree, L(*node)));
-    STATUS_CHECK(tree_dtor_subtree_copy(tree, R(*node)));
+    STATUS_CHECK(tree_dtor_untied_subtree(tree, L(*node)));
+    STATUS_CHECK(tree_dtor_untied_subtree(tree, R(*node)));
 
     assert(*L(*node) == nullptr);
     assert(*R(*node) == nullptr);

@@ -58,6 +58,26 @@ char ui_get_char_no_enter(FILE* stream) {
     return (char)c;
 }
 
+double ui_get_double_or_NAN(FILE* stream) {
+    assert(stream);
+
+    static const size_t MAX_INPUT_LEN = 256;
+    char input[MAX_INPUT_LEN] = {};
+
+    if (fgets(input, MAX_INPUT_LEN, stream) == nullptr)
+        return INFINITY;
+
+    if (input[0] == '\n' && input[1] == '\0')
+        return NAN;
+
+    double res = INFINITY;
+
+    if (sscanf(input, "%lf", &res) != 1)
+        return INFINITY;
+
+    return res;
+}
+
 bool input_flush(FILE* stream) {
     assert(stream);
 

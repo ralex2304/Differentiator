@@ -38,8 +38,8 @@ bool file_open(FILE** file, const char* filename, const char* mode) {
     assert(filename);
 
     *file = fopen(filename, mode);
-    if (*file == nullptr) {
-        printf("Error opening text file\n");
+    if (*file == nullptr || ferror(*file)) {
+        perror("Error opening text file");
         return false;
     }
     return true;
@@ -80,4 +80,21 @@ bool file_close(FILE* file) {
         return false;
     }
     return true;
+}
+
+int file_printf(FILE* file, const char* format, ...){
+    assert(file);
+    assert(format);
+
+    va_list args = {};
+    va_start(args, format);
+
+    int res = vfprintf(file, format, args);
+
+    va_end(args);
+
+    if (res == EOF)
+        perror("File write error");
+
+    return res;
 }

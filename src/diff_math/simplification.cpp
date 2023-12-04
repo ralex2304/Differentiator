@@ -1,45 +1,45 @@
 #include "simplification.h"
 
-static Status::Statuses diff_simplify_oper_(DiffData* diff_data, TreeNode** node, bool* is_simple);
+#include "../dsl.h"
+
+static Status::Statuses diff_simplify_oper_(DiffData* diff_data, TreeNode** node, bool* is_countable);
 
 static Status::Statuses diff_simplify_eval_subtree_(DiffData* diff_data, TreeNode** node);
 
 static Status::Statuses diff_simplify_eval_subtree_oper_(DiffData* diff_data, TreeNode** node);
 
-static Status::Statuses diff_simplify_neutral_(DiffData* diff_data, TreeNode** node, bool* is_simple);
+static Status::Statuses diff_simplify_neutral_(DiffData* diff_data, TreeNode** node);
 
 static Status::Statuses diff_simplify_oper_const_eval_(DiffData* diff_data, TreeNode** node,
-                                                       bool* is_parent_simple,
-                                                       bool* is_l_simple, bool* is_r_simple);
+                                                       bool* is_parent_countable,
+                                                       bool* is_l_countable, bool* is_r_countable);
 
 
 Status::Statuses diff_simplify(DiffData* diff_data) {
     assert(diff_data);
 
-    bool is_simple = false;
-    STATUS_CHECK(diff_simplify_traversal(diff_data, &diff_data->tree.root, &is_simple));
+    bool is_countable = false;
+    STATUS_CHECK(diff_simplify_traversal(diff_data, &diff_data->tree.root, &is_countable));
 
     return Status::NORMAL_WORK;
 }
 
-#include "../dsl.h"
-
-Status::Statuses diff_simplify_traversal(DiffData* diff_data, TreeNode** node, bool* is_simple) {
+Status::Statuses diff_simplify_traversal(DiffData* diff_data, TreeNode** node, bool* is_countable) {
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(is_simple);
+    assert(is_countable);
 
-    switch (((DiffElem*)(*node)->elem)->type) {
+    switch (*NODE_TYPE(*node)) {
         case DiffElemType::NUM:
-            *is_simple = true;
-            break;
         case DiffElemType::VAR:
-            *is_simple = false;
+            *is_countable = VAL_IS_COUNTABLE(*node);
             break;
+
         case DiffElemType::OPER:
-            STATUS_CHECK(diff_simplify_oper_(diff_data, node, is_simple));
+            STATUS_CHECK(diff_simplify_oper_(diff_data, node, is_countable));
             break;
+
         case DiffElemType::ERR:
         default:
             assert(0 && "Invalid DiffElemType given");
@@ -49,45 +49,49 @@ Status::Statuses diff_simplify_traversal(DiffData* diff_data, TreeNode** node, b
     return Status::NORMAL_WORK;
 }
 
-static Status::Statuses diff_simplify_oper_(DiffData* diff_data, TreeNode** node, bool* is_simple) {
+static Status::Statuses diff_simplify_oper_(DiffData* diff_data, TreeNode** node, bool* is_countable) {
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(is_simple);
-    assert(NODE_IS_OPER(*node));
+    assert(is_countable);
+    assert(TYPE_IS_OPER(*node));
 
-    bool is_left_simple = false;
-    bool is_right_simple = false;
+    bool is_left_countable = false;
+    bool is_right_countable = false;
 
-    STATUS_CHECK(diff_simplify_oper_const_eval_(diff_data, node, is_simple, &is_left_simple,
-                                                                            &is_right_simple));
+    STATUS_CHECK(diff_simplify_oper_const_eval_(diff_data, node, is_countable, &is_left_countable,
+                                                                               &is_right_countable));
 
-    if (!(*is_simple))
-        STATUS_CHECK(diff_simplify_neutral_(diff_data, node, is_simple));
+    if (!(*is_countable))
+        STATUS_CHECK(diff_simplify_neutral_(diff_data, node));
 
     return Status::NORMAL_WORK;
 }
 
 static Status::Statuses diff_simplify_oper_const_eval_(DiffData* diff_data, TreeNode** node,
-                                                       bool* is_parent_simple,
-                                                       bool* is_l_simple, bool* is_r_simple) {
+                                                       bool* is_parent_countable,
+                                                       bool* is_l_countable, bool* is_r_countable) {
     assert(diff_data);
     assert(node);
     assert(*node);
+    assert(TYPE_IS_OPER(*node));
 
-    if (OPER(*node)->type == BINARY)
-        STATUS_CHECK(diff_simplify_traversal(diff_data, L(*node), is_l_simple));
+    if (IS_BINARY(*node))
+        STATUS_CHECK(diff_simplify_traversal(diff_data, L(*node), is_l_countable));
     else
-        *is_r_simple = true;
+        *is_r_countable = true;
 
-    STATUS_CHECK(diff_simplify_traversal(diff_data, R(*node), is_r_simple));
+    STATUS_CHECK(diff_simplify_traversal(diff_data, R(*node), is_r_countable));
 
-    *is_parent_simple = *is_l_simple && *is_r_simple;
 
-    if (*is_l_simple != *is_r_simple) {
-        STATUS_CHECK(diff_simplify_eval_subtree_(diff_data, *is_l_simple ? L(*node)
-                                                                         : R(*node)));
-    }
+    *is_parent_countable = *is_l_countable && *is_r_countable;
+
+    if (*is_parent_countable)
+        SIMPLIFY_EVAL(node);
+
+    else if (*is_l_countable != *is_r_countable)
+        SIMPLIFY_EVAL(*is_l_countable ? L(*node)
+                                      : R(*node));
 
     return Status::NORMAL_WORK;
 }
@@ -96,13 +100,20 @@ static Status::Statuses diff_simplify_eval_subtree_(DiffData* diff_data, TreeNod
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(!NODE_IS_VAR(*node)); // TODO var value eval
+    assert(VAL_IS_COUNTABLE(*node) || TYPE_IS_OPER(*node));
 
-    if (NODE_IS_OPER(*node)) {
+    if (TYPE_IS_OPER(*node)) {
         STATUS_CHECK(diff_simplify_eval_subtree_oper_(diff_data, node));
+        return Status::NORMAL_WORK;
     }
 
-    // dsl_node_is_num - do nothing
+    if (TYPE_IS_VAR(*node)) {
+        *ELEM(*node) = NUM_ELEM(*VAR_VAL(*node));
+        return Status::NORMAL_WORK;
+    }
+
+    assert(TYPE_IS_NUM(*node));
+    // if TYPE_IS_NUM - do nothing
 
     return Status::NORMAL_WORK;
 }
@@ -111,21 +122,24 @@ static Status::Statuses diff_simplify_eval_subtree_oper_(DiffData* diff_data, Tr
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(NODE_IS_OPER(*node));
+    assert(TYPE_IS_OPER(*node));
 
     if (OPER(*node)->type == BINARY)
         STATUS_CHECK(diff_simplify_eval_subtree_(diff_data, L(*node)));
 
     STATUS_CHECK(diff_simplify_eval_subtree_(diff_data, R(*node)));
 
-    const double left  = *NUM_VAL(*L(*node));
-    const double right = *NUM_VAL(*R(*node));
+    const double left  = OPER(*node)->type == BINARY ? *NUM_VAL(*L(*node)) : NAN;
+    const double right =                               *NUM_VAL(*R(*node));
     double result = NAN;
 
     STATUS_CHECK(diff_eval_calc(left, right, *OPER_NUM(*node), &result));
     assert(isfinite(result));
 
-    TREE_DELETE_NODE(L(*node));
+
+    if (OPER(*node)->type == BINARY)
+        TREE_DELETE_NODE(L(*node));
+
     TREE_DELETE_NODE(R(*node));
 
     *NODE_TYPE(*node) = DiffElemType::NUM;
@@ -134,27 +148,24 @@ static Status::Statuses diff_simplify_eval_subtree_oper_(DiffData* diff_data, Tr
     return Status::NORMAL_WORK;
 }
 
-static Status::Statuses diff_simplify_neutral_(DiffData* diff_data, TreeNode** node, bool* is_simple) {
+static Status::Statuses diff_simplify_neutral_(DiffData* diff_data, TreeNode** node) {
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(is_simple);
-    assert(!NODE_IS_VAR(*node));
+    assert(VAL_IS_COUNTABLE(*node) || TYPE_IS_OPER(*node));
 
-    if (NODE_IS_NUM(*node))
+    if (VAL_IS_COUNTABLE(*node))
         return Status::NORMAL_WORK;
-
-    // TODO Equal simplification for sub and div
 
     switch (*OPER_NUM(*node)) {
         case DiffOperNum::ADD:
-            if (NODE_VAL_EQUALS(*L(*node), 0)) {
-                RECONNECT(node, *R(*node));
+            if (NODE_VAL_EQUALS(*R(*node), 0)) {
+                RECONNECT(node, *L(*node));
                 break;
             }
 
-            if (NODE_VAL_EQUALS(*R(*node), 0))
-                RECONNECT(node, *L(*node));
+            if (NODE_VAL_EQUALS(*L(*node), 0))
+                RECONNECT(node, *R(*node));
             break;
 
         case DiffOperNum::SUB:
@@ -163,49 +174,53 @@ static Status::Statuses diff_simplify_neutral_(DiffData* diff_data, TreeNode** n
             break;
 
         case DiffOperNum::MUL:
+            if (NODE_VAL_EQUALS(*L(*node), 0) || NODE_VAL_EQUALS(*R(*node), 0)) {
+                TREE_REPLACE_SUBTREE_WITH_NUM(node, 0);
+                break;
+            }
+
             if (NODE_VAL_EQUALS(*L(*node), 1)) {
                 RECONNECT(node, *R(*node));
                 break;
             }
 
-            if (NODE_VAL_EQUALS(*R(*node), 1)) {
+            if (NODE_VAL_EQUALS(*R(*node), 1))
                 RECONNECT(node, *L(*node));
-                break;
-            }
-
-            if (NODE_VAL_EQUALS(*L(*node), 0) || NODE_VAL_EQUALS(*R(*node), 0))
-                TREE_REPLACE_SUBTREE_WITH_NUM(node, 0);
             break;
 
         case DiffOperNum::DIV:
-            if (NODE_VAL_EQUALS(*R(*node), 1)) {
-                RECONNECT(node, *L(*node));
+            if (NODE_VAL_EQUALS(*L(*node), 0)) {
+                TREE_REPLACE_SUBTREE_WITH_NUM(node, 0);
                 break;
             }
 
-            if (NODE_VAL_EQUALS(*L(*node), 0))
-                TREE_REPLACE_SUBTREE_WITH_NUM(node, 0);
+            if (NODE_VAL_EQUALS(*R(*node), 1))
+                RECONNECT(node, *L(*node));
             break;
 
         case DiffOperNum::POW:
-            if (NODE_VAL_EQUALS(*R(*node), 1)) {
-                RECONNECT(node, *L(*node));
-                break;
-            }
-
             if (NODE_VAL_EQUALS(*L(*node), 1)) {
                 TREE_REPLACE_SUBTREE_WITH_NUM(node, 1);
                 break;
             }
 
-            if (NODE_VAL_EQUALS(*L(*node), 0))
+            if (NODE_VAL_EQUALS(*L(*node), 0)) {
                 TREE_REPLACE_SUBTREE_WITH_NUM(node, 1);
+                break;
+            }
+
+            if (NODE_VAL_EQUALS(*R(*node), 1))
+                RECONNECT(node, *L(*node));
             break;
 
         case DiffOperNum::LN:
         case DiffOperNum::SQRT:
         case DiffOperNum::SIN:
         case DiffOperNum::COS:
+            assert(OPER(*node)->type == UNARY);
+
+            if (VAL_IS_COUNTABLE(*R(*node)))
+                SIMPLIFY_EVAL(node);
             break;
 
         case DiffOperNum::ERR:

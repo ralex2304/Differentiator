@@ -33,6 +33,8 @@ bool diff_math_add_variable(const char* text, long* const i, DiffVars* vars, siz
     if (vars->arr[vars->size].name == nullptr)
         return false;
 
+    vars->arr[vars->size].val = NAN;
+
     *var_num = vars->size;
 
     vars->size++;
@@ -80,6 +82,8 @@ bool diff_elem_dtor(void* elem) {
 #ifdef DEBUG
     ((DiffElem*)elem)->type      = DiffElemType::ERR;
     ((DiffElem*)elem)->data.oper = DiffOperNum::ERR;
+
+    ((DiffElem*)elem)->will_be_diffed = false;
 #endif //< #ifdef DEBUG
 
     return true;
@@ -118,7 +122,7 @@ char* diff_elem_str_val(const void* elem) {
 
     static const size_t MAX_ELEM_STR_LEN = 128;
 
-    char* str = (char*)calloc(MAX_ELEM_STR_LEN, sizeof(char));
+    char* str = (char*)calloc(MAX_ELEM_STR_LEN + 1, sizeof(char)); //< +1 for '
     if (str == nullptr)
         return nullptr;
 
@@ -142,6 +146,9 @@ char* diff_elem_str_val(const void* elem) {
     } else {
         snprintf(str, MAX_ELEM_STR_LEN, "Unknown type: %d", (int)((const DiffElem*)elem)->type);
     }
+
+    if (((const DiffElem*)elem)->will_be_diffed)
+        strcat(str, "'");
 
     return str;
 }

@@ -7,7 +7,6 @@
 
 #include <math.h>
 
-
 #define L(node_) (&(node_)->left)
 #define R(node_) (&(node_)->right)
 
@@ -33,18 +32,57 @@
 
 #define NUM_VAL(node_) (&NODE_DATA(node_)->num)
 
-#define VAR_NUM(node_) (&NODE_DATA(node_)->var)
-#define VAR_VAL(node_) (&diff_data->vars.arr[*VAR_NUM(node_)].val)
+#define ARG_VAR_NUM diff_data->vars.argument
 
-#define OPER_NUM(node_) (&NODE_DATA(node_)->oper)
-#define OPER(node_)     (DIFF_OPERS + (size_t)(*OPER_NUM(node_)))
+#define VAR_NUM(node_)         (&NODE_DATA(node_)->var)
+#define VAR(node_)             (&diff_data->vars.arr[*VAR_NUM(node_)])
+#define VAR_VAL(node_)         (&VAR(node_)->val)
+#define VAR_NAME(node_)        (&VAR(node_)->name)
+#define VAR_IS_ARGUMENT(node_) ((ssize_t)*VAR_NUM(node_) == ARG_VAR_NUM)
 
-#define NODE_IS_NUM(node_)  (*NODE_TYPE(node_) == DiffElemType::NUM)
-#define NODE_IS_VAR(node_)  (*NODE_TYPE(node_) == DiffElemType::VAR)
-#define NODE_IS_OPER(node_) (*NODE_TYPE(node_) == DiffElemType::OPER)
+#define OPER_NUM(node_)     (&NODE_DATA(node_)->oper)
+#define OPER_TYPE(node_)    (&OPER(node_)->type)
+#define OPER(node_)         (DIFF_OPERS + (size_t)(*OPER_NUM(node_)))
+
+#define IS_BINARY(node_)    (*OPER_TYPE(node_) == BINARY)
+#define IS_UNARY(node_)     (*OPER_TYPE(node_) == UNARY)
+
+#define VAL_IS_SIMPLE(node_)    (TYPE_IS_NUM(node_) || (TYPE_IS_VAR(node_) && !VAR_IS_ARGUMENT(node_)))
+#define VAL_IS_COUNTABLE(node_) (TYPE_IS_NUM(node_) || (TYPE_IS_VAR(node_) && !isnan(*VAR_VAL(node_))))
+
+#define TYPE_IS_NUM(node_)  (*NODE_TYPE(node_) == DiffElemType::NUM)
+#define TYPE_IS_VAR(node_)  (*NODE_TYPE(node_) == DiffElemType::VAR)
+#define TYPE_IS_OPER(node_) (*NODE_TYPE(node_) == DiffElemType::OPER)
 
 #define NUM_ELEM(val_)      {.type = DiffElemType::NUM,  .data = {.num  = val_}}
 #define OPER_ELEM(oper_)    {.type = DiffElemType::OPER, .data = {.oper = oper_}}
+
+#define NODE_VAL(node_) (TYPE_IS_NUM(node_) ? NUM_VAL(node_) : (TYPE_IS_VAR(node_) ? VAR_VAL(node_) : nullptr))
+
+#define NODE_IS_ROOT(node_) (node_ == diff_data->tree.root)
+
+#define PARENT(node_) ((node_)->parent)
+
+#define IS_L_CHILD(node_) (PARENT(node_) != nullptr && *L(PARENT(node_)) == node_)
+#define IS_R_CHILD(node_) (PARENT(node_) != nullptr && *R(PARENT(node_)) == node_)
+
+#define OPER_NUM_NEEDS_R_CHILD_PARENTHESIS(oper_num_) (oper_num_ == DiffOperNum::SUB || \
+                                                       oper_num_ == DiffOperNum::MUL || \
+                                                       oper_num_ == DiffOperNum::SIN || \
+                                                       oper_num_ == DiffOperNum::COS || \
+                                                       oper_num_ == DiffOperNum::LN)
+
+#define OPER_NUM_NEEDS_L_CHILD_PARENTHESIS(oper_num_) (oper_num_ == DiffOperNum::MUL || \
+                                                       oper_num_ == DiffOperNum::POW)
+
+#define NEEDS_L_CHILD_PARENTHESIS(node_) (TYPE_IS_OPER(node_) && OPER_NUM_NEEDS_L_CHILD_PARENTHESIS(*OPER_NUM(node_)))
+#define NEEDS_R_CHILD_PARENTHESIS(node_) (TYPE_IS_OPER(node_) && OPER_NUM_NEEDS_R_CHILD_PARENTHESIS(*OPER_NUM(node_)))
+
+#define NEEDS_PARENTHESIS(node_) (TYPE_IS_OPER(node_) && OPER_NUM_NEEDS_PARENTHESIS(*OPER_NUM(node_)))
+
+#define IS_ADD_OR_SUB(node_) (TYPE_IS_OPER(node_) && OPER_NUM_ADD_OR_SUB(*OPER_NUM(node_)))
+
+#define IS_L_CHILD_OF_POW(node_) (!NODE_IS_ROOT(node_) && *OPER_NUM(PARENT(node_)) == DiffOperNum::POW && IS_L_CHILD(node_))
 
 #define TREE_INSERT(dest_, parent_, elem_)                                                  \
             do {                                                                            \
@@ -74,24 +112,26 @@
             (src_)->parent = parent_
 
 #define COPY_SUBTREE(src_, dest_, size_)                        \
-            STATUS_CHECK(tree_copy_subtree(src_, dest_, size_))
+            STATUS_CHECK(tree_copy_subtree(diff_data, src_, dest_, size_))
 
 #define COPY_SUBTREE_AND_CHECK_SIMPLICITY(src_, dest_, size_, is_simple_)   \
-            STATUS_CHECK(tree_copy_subtree(src_, dest_, size_, is_simple_))
+            STATUS_CHECK(tree_copy_subtree(diff_data, src_, dest_, size_, is_simple_))
 
 #define UNTIE_SUBTREE(node_, size_)         \
             /* = */ node_;                  \
             diff_data->tree.size -= size_;  \
             node_ = nullptr
 
-#define DELETE_SUBTREE_COPY(copy_, size_)                                       \
+#define DELETE_UNTIED_SUBTREE(copy_, size_)                                     \
             do {                                                                \
-                STATUS_CHECK(tree_dtor_subtree_copy(&diff_data->tree, copy_));  \
+                STATUS_CHECK(tree_dtor_untied_subtree(&diff_data->tree, copy_));\
                 size_ = 0;                                                      \
             } while(0)
 
 
 #define RECONNECT(dest_, src_) STATUS_CHECK(tree_reconnect_node(diff_data, dest_, src_))
+
+#define SIMPLIFY_EVAL(node_) diff_simplify_eval_subtree_(diff_data, node_)
 
 #define TREE_REPLACE_SUBTREE_WITH_NUM(node_, val_)          \
             do {                                            \
@@ -109,6 +149,8 @@ inline bool dsl_is_double_equal(const double a, const double b) {
 
 #define IS_DOUBLE_EQ(a_, b_) dsl_is_double_equal(a_, b_)
 
-#define NODE_VAL_EQUALS(node_, val_) (NODE_IS_NUM(node_) && IS_DOUBLE_EQ(*NUM_VAL(node_), val_))
+#define NODE_VAL_EQUALS(node_, val_) (VAL_IS_COUNTABLE(node_) && IS_DOUBLE_EQ(*NODE_VAL(node_), val_))
+
+#define TEX_DUMP() STATUS_CHECK(tex_dump_add(diff_data)) // TODO no tex file check
 
 #endif //< #ifndef DIFF_DSL_H_

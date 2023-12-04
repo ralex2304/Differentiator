@@ -9,12 +9,17 @@ Status::Statuses args_parse(int argc, char* argv[], ArgsVars* args_vars) {
      * @brief This array contains console options, their functions and descriptions
      */
     static Argument args_dict[] = {
-        {"-h", print_help,           "#   -h - prints help information\n"},             //< Help option
+        {"-h", print_help,             "#   -h - prints help information\n"},             //< Help option
 
-        {"-i", read_input_filename,  "#   -i - specify input file name after this\n"},  //< Input filename
+        {"-i", read_input_filename,    "#   -i - specify input file name after this\n"},  //< Input filename
+
+        {"-o", read_tex_filename,    "#   -o - specify tex output file name after this\n"},  //< Output filename
+
+        {"-v", enable_substitute_vals, "#   -v - will ask about variable values\n"},      //< exact mode
+
     };
 
-    static const int ARGS_DICT_LEN = sizeof(args_dict) / sizeof(args_dict[0]); ///< args_dict array len
+    static const int ARGS_DICT_LEN = sizeof(args_dict) / sizeof(args_dict[0]); //< args_dict array len
 
     bool exit = false;
     for (int i = 1; i < argc; i++) {
@@ -84,5 +89,38 @@ ArgsMode read_input_filename(const Argument args_dict[], const int args_dict_len
     }
 
     args_vars->input_filename = argv[*arg_i];
+    return ArgsMode::CONTINUE;
+}
+
+ArgsMode read_tex_filename(const Argument args_dict[], const int args_dict_len,
+                           int* arg_i, int argc, char* argv[], ArgsVars* args_vars) {
+    (void) args_dict_len;
+
+    assert(args_dict);
+    assert(arg_i);
+    assert(argv);
+    assert(args_vars);
+
+    if (++(*arg_i) >= argc) {
+        printf("No tex file name found\n");
+        return ArgsMode::ERR;
+    }
+
+    args_vars->tex_filename = argv[*arg_i];
+    return ArgsMode::CONTINUE;
+}
+
+ArgsMode enable_substitute_vals(const Argument args_dict[], const int args_dict_len,
+                                int* arg_i, int argc, char* argv[], ArgsVars* args_vars) {
+    (void) args_dict_len;
+    (void) argc;
+
+    assert(args_dict);
+    assert(arg_i);
+    assert(argv);
+    assert(args_vars);
+
+    args_vars->substitute_vals = true;
+
     return ArgsMode::CONTINUE;
 }

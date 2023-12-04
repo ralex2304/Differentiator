@@ -61,23 +61,24 @@ Status::Statuses diff_do_diff_traversal(DiffData* diff_data, TreeNode** node) {
     assert(node);
     assert(*node);
 
-    if (NODE_IS_NUM(*node)) {
+    if (TYPE_IS_OPER(*node)) {
+        STATUS_CHECK(diff_do_diff_oper_node_(diff_data, node));
+        return Status::NORMAL_WORK;
+    }
+
+    if (VAL_IS_SIMPLE(*node)) {
+        *NODE_TYPE(*node) = DiffElemType::NUM;
         *NUM_VAL(*node) = 0;
         return Status::NORMAL_WORK;
     }
 
-    if (NODE_IS_VAR(*node)) {
+    if (!VAL_IS_SIMPLE(*node)) {
         *NODE_TYPE(*node) = DiffElemType::NUM;
         *NUM_VAL(*node) = 1;
         return Status::NORMAL_WORK;
     }
 
-    if (NODE_IS_OPER(*node)) {
-        STATUS_CHECK(diff_do_diff_oper_node_(diff_data, node));
-        return Status::NORMAL_WORK;
-    }
-
-    assert(0 && "Invalid DiffElemType");
+    assert(0 && "Invalid DiffElemType given or vars array is damaged");
     return Status::TREE_ERROR;
 }
 
@@ -89,7 +90,7 @@ static Status::Statuses diff_do_diff_oper_node_(DiffData* diff_data, TreeNode** 
     assert(diff_data);
     assert(node);
     assert(*node);
-    assert(NODE_IS_OPER(*node));
+    assert(TYPE_IS_OPER(*node));
 
     switch (*OPER_NUM(*node)) {
         OPER_CASE_(ADD,  diff_do_diff_addition_(diff_data, node));
@@ -111,6 +112,7 @@ static Status::Statuses diff_do_diff_oper_node_(DiffData* diff_data, TreeNode** 
 
     return Status::NORMAL_WORK;
 }
+#undef OPER_CASE_
 
 static Status::Statuses diff_do_diff_addition_(DiffData* diff_data, TreeNode** node) {
     assert(diff_data);
@@ -258,8 +260,10 @@ static Status::Statuses diff_do_diff_pow_(DiffData* diff_data, TreeNode** node) 
     TreeNode* v_original = UNTIE_SUBTREE(*R(*node), v_size);
 
     if (u_is_simple && v_is_simple) { //< n^n
-        DELETE_SUBTREE_COPY(&u_copy, u_size);
-        DELETE_SUBTREE_COPY(&v_copy, v_size);
+        DELETE_UNTIED_SUBTREE(&u_copy, u_size);
+        DELETE_UNTIED_SUBTREE(&v_copy, v_size);
+        DELETE_UNTIED_SUBTREE(&u_original, u_size); //< size value turns to 0 there,
+        DELETE_UNTIED_SUBTREE(&v_original, v_size); //< so value isn't important
 
         TREE_REPLACE_SUBTREE_WITH_NUM(node, 0);
 
@@ -414,7 +418,7 @@ static Status::Statuses diff_do_diff_sqrt_(DiffData* diff_data, TreeNode** node)
 
     // TODO dump
 
-    DO_DIFF(R(*node));
+    DO_DIFF(L(*node));
 
     // TODO dump
 

@@ -10,10 +10,10 @@
 #include "../diff_objects.h"
 
 
-Status::Statuses tree_copy_subtree(TreeNode* src, TreeNode** dest, size_t* size,
+Status::Statuses tree_copy_subtree(DiffData* diff_data, TreeNode* src, TreeNode** dest, size_t* size,
                                    bool* is_simple = nullptr);
 
-Status::Statuses tree_dtor_subtree_copy(Tree* tree, TreeNode** node);
+Status::Statuses tree_dtor_untied_subtree(Tree* tree, TreeNode** node);
 
 Status::Statuses tree_reconnect_node(DiffData* diff_data, TreeNode** dest, TreeNode* src);
 

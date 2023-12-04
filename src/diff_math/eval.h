@@ -5,6 +5,7 @@
 
 #include "../utils/statuses.h"
 #include "../diff_objects.h"
+#include "../interface.h"
 #include "../config.h"
 #include TREE_INCLUDE
 

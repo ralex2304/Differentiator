@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdarg.h>
 
 #include "../utils/statuses.h"
 
@@ -55,5 +56,27 @@ bool file_read(FILE* file, char* buf, long file_len);
  * @return false failure
  */
 bool file_close(FILE* file);
+
+#ifdef __GNUG__ // because of __attribute__
+/**
+ * @brief Error handler for fprintf
+ *
+ * @param file
+ * @param format
+ * @param ...
+ * @return int number of printed symbols or EOF
+ */
+int file_printf(FILE* file, const char* format, ...) __attribute__ ((format(printf, 2, 3)));
+#else // #ifndef __GNUG__
+/**
+ * @brief Error handler for fprintf
+ *
+ * @param file
+ * @param format
+ * @param ...
+ * @return int number of printed symbols or EOF
+ */
+int file_printf(FILE* file, const char* format, ...);
+#endif // #ifdef __GNUG__
 
 #endif // #ifndef FILE_H_

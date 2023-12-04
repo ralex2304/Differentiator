@@ -1,6 +1,8 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
+const char* const DIFF_VAR_NAME = "x";
+
 #define DEBUG //< enables debug mode
 
 #ifdef DEBUG

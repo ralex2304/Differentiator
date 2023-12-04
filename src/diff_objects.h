@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#include "file/file.h"
+
 #include "config.h"
 #include TREE_INCLUDE
 
@@ -64,6 +66,8 @@ struct DiffVars {
     size_t capacity = 0;
     DiffVar* arr = nullptr;
 
+    ssize_t argument = -1;
+
     inline bool ctor() {
         arr = (DiffVar*)calloc(INITIAL_CAP, sizeof(*arr));
         if (!arr)
@@ -76,6 +80,15 @@ struct DiffVars {
         for (size_t i = 0; i < size; i++)
             FREE(arr[i].name);
         FREE(arr);
+
+        argument = -1;
+    };
+    inline void search_argument() {
+        for (size_t i = 0; i < size; i++)
+            if (strcmp(DIFF_VAR_NAME, arr[i].name) == 0) {
+                argument = i;
+                break;
+            }
     };
     inline bool resize_up() {
         DiffVar* tmp = (DiffVar*)recalloc(arr, capacity, capacity * 2);
@@ -102,6 +115,8 @@ union DiffElemData {
 struct DiffElem {
     DiffElemType type = DiffElemType::ERR;
     DiffElemData data = {};
+
+    bool will_be_diffed = false; //< flag for tex dump
 };
 
 bool diff_elem_dtor(void* elem);
@@ -114,6 +129,8 @@ struct DiffData {
     Tree tree = {};
     DiffVars vars = {};
 
+    FILE* tex_file = {};
+
     inline bool ctor() {
         bool res = TREE_CTOR(&tree, sizeof(DiffElem), &diff_elem_dtor,
                              &diff_elem_verify, &diff_elem_str_val) == Tree::OK;
@@ -123,7 +140,25 @@ struct DiffData {
     inline void dtor() {
         vars.dtor();
         tree_dtor(&tree);
+        if (tex_file != nullptr) {
+            fclose(tex_file);
+            tex_file = nullptr;
+        }
     };
+    inline bool open_tex(const char* filename, const char* mode = "wb") {
+        assert(tex_file == nullptr);
+        assert(filename);
+        assert(mode);
+
+        return file_open(&tex_file, filename, mode);
+    }
+    inline bool close_tex() {
+        assert(tex_file);
+
+        bool res = file_close(tex_file);
+        tex_file = nullptr;
+        return res;
+    }
 };
 
 bool diff_math_add_variable(const char* text, long* const i, DiffVars* vars, size_t* var_num);
