@@ -21,7 +21,7 @@ enum class ArgsMode {
  */
 struct ArgsVars {
     const char* input_filename = nullptr;
-    const char* tex_filename = nullptr;
+    const char* tex_directory = nullptr;
     bool substitute_vals = false;
 };
 
@@ -75,7 +75,7 @@ ArgsMode read_input_filename(const Argument args_dict[], const int args_dict_len
  * @param[out] args_vars
  * @return ArgsMode
  */
-ArgsMode read_tex_filename(const Argument args_dict[], const int args_dict_len,
+ArgsMode read_tex_directory(const Argument args_dict[], const int args_dict_len,
                            int* arg_i, int argc, char* argv[], ArgsVars* args_vars);
 
 /**

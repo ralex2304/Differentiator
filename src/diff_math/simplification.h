@@ -6,6 +6,7 @@
 #include "../diff_objects.h"
 #include "../utils/statuses.h"
 #include "eval.h"
+#include "../tex/tex.h"
 
 #include "../config.h"
 #include TREE_INCLUDE

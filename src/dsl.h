@@ -47,8 +47,10 @@
 #define IS_BINARY(node_)    (*OPER_TYPE(node_) == BINARY)
 #define IS_UNARY(node_)     (*OPER_TYPE(node_) == UNARY)
 
+#define SUBST_VARS diff_data->simplify_substitute_vars
+
 #define VAL_IS_SIMPLE(node_)    (TYPE_IS_NUM(node_) || (TYPE_IS_VAR(node_) && !VAR_IS_ARGUMENT(node_)))
-#define VAL_IS_COUNTABLE(node_) (TYPE_IS_NUM(node_) || (TYPE_IS_VAR(node_) && !isnan(*VAR_VAL(node_))))
+#define VAL_IS_COUNTABLE(node_) (TYPE_IS_NUM(node_) || (SUBST_VARS && TYPE_IS_VAR(node_) && !isnan(*VAR_VAL(node_))))
 
 #define TYPE_IS_NUM(node_)  (*NODE_TYPE(node_) == DiffElemType::NUM)
 #define TYPE_IS_VAR(node_)  (*NODE_TYPE(node_) == DiffElemType::VAR)
@@ -59,7 +61,9 @@
 
 #define NODE_VAL(node_) (TYPE_IS_NUM(node_) ? NUM_VAL(node_) : (TYPE_IS_VAR(node_) ? VAR_VAL(node_) : nullptr))
 
-#define NODE_IS_ROOT(node_) (node_ == diff_data->tree.root)
+#define ROOT (&diff_data->tree.root)
+
+#define NODE_IS_ROOT(node_) (node_ == *ROOT)
 
 #define PARENT(node_) ((node_)->parent)
 
@@ -89,16 +93,24 @@
                 DiffElem new_elem_ = elem_;                                                 \
                 if (tree_insert(&diff_data->tree, dest_, parent_, &new_elem_) != Tree::OK)  \
                     return Status::TREE_ERROR;                                              \
+                diff_data->tree_changed = true;                                             \
             } while(0)
 
 
-#define TREE_DELETE_NODE(node_)                                             \
-            if (tree_delete(&diff_data->tree, node_, false) != Tree::OK)    \
-                return Status::NORMAL_WORK
+#define TREE_DELETE_NODE(node_)                                                 \
+            do {                                                                \
+                if (tree_delete(&diff_data->tree, node_, false) != Tree::OK)    \
+                    return Status::NORMAL_WORK;                                 \
+                diff_data->tree_changed = true;                                 \
+            } while(0)
 
-#define TREE_DELETE_SUBTREE(node_)                                      \
-            if (tree_delete(&diff_data->tree, node_, true) != Tree::OK) \
-                return Status::NORMAL_WORK
+#define TREE_DELETE_SUBTREE(node_)                                          \
+            do {                                                            \
+                if (tree_delete(&diff_data->tree, node_, true) != Tree::OK) \
+                    return Status::NORMAL_WORK;                             \
+                diff_data->tree_changed = true;                             \
+            } while(0)
+
 
 #define COPY_AND_REPLACE_WITH_MUL(target_, copy_, size_)                                            \
             TreeNode* copy_ = nullptr;                                                              \
@@ -109,7 +121,8 @@
 #define INSERT_SUBTREE(parent_, src_, size_)    \
             /* = */ src_;                       \
             diff_data->tree.size += size_;      \
-            (src_)->parent = parent_
+            (src_)->parent = parent_;           \
+            diff_data->tree_changed = true
 
 #define COPY_SUBTREE(src_, dest_, size_)                        \
             STATUS_CHECK(tree_copy_subtree(diff_data, src_, dest_, size_))
@@ -120,7 +133,8 @@
 #define UNTIE_SUBTREE(node_, size_)         \
             /* = */ node_;                  \
             diff_data->tree.size -= size_;  \
-            node_ = nullptr
+            node_ = nullptr;                \
+            diff_data->tree_changed = true
 
 #define DELETE_UNTIED_SUBTREE(copy_, size_)                                     \
             do {                                                                \
@@ -151,6 +165,22 @@ inline bool dsl_is_double_equal(const double a, const double b) {
 
 #define NODE_VAL_EQUALS(node_, val_) (VAL_IS_COUNTABLE(node_) && IS_DOUBLE_EQ(*NODE_VAL(node_), val_))
 
-#define TEX_DUMP() STATUS_CHECK(tex_dump_add(diff_data)) // TODO no tex file check
+#define NODE_WILL_BE_DIFFED(node_) (&ELEM(node_)->will_be_diffed)
+
+#define IS_TEX_DUMP_ENABLED (diff_data->tex_file != nullptr)
+
+#define TREE_CHANGED (diff_data->tree_changed)
+
+#define TEX_DUMP()  do {                                            \
+                        if (IS_TEX_DUMP_ENABLED && TREE_CHANGED)    \
+                            STATUS_CHECK(tex_dump_add(diff_data));  \
+                    } while (0)
+
+#define DO_DIFF_AND_TEX_DUMP(node_) do {                                        \
+                                        *NODE_WILL_BE_DIFFED(*node_) = true;    \
+                                        TEX_DUMP();                             \
+                                        DO_DIFF(node_);                         \
+                                        TEX_DUMP();                             \
+                                    } while (0)
 
 #endif //< #ifndef DIFF_DSL_H_

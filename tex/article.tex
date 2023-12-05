@@ -1,0 +1,76 @@
+\documentclass[12pt]{article}
+\usepackage[T2A]{fontenc}
+\usepackage{mathtools}
+\usepackage[utf8]{inputenc}
+\usepackage[english, russian]{babel}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{indentfirst}
+
+\title{Работа X.X.X. Дифференцирование математических выражений}
+\author{Скайнет и Кожаный мешок (Александр Рожков)}
+\date{29 августа 1997 года - 11 июля 2029 года}
+
+\begin{document}
+
+\maketitle
+\newpage
+
+
+\section{Дано}
+
+$$ \frac{\sin{x  }  }{\cos{y  }  }  $$
+
+\section{Упростим выражение}
+
+$$ \frac{\sin{x  }  }{\cos{y  }  }  $$
+
+\section{Продифференцируем}
+
+$$ ( \frac{\sin{x  }  }{\cos{y  }  } )' $$
+
+А вот здесь сама рука пишет:
+
+$$ \frac{( \sin{x  } )' * \cos{y  }   - ( \cos{y  } )' * \sin{x  }    }{{( \cos{y  } ) }^{2  }  }  $$
+
+Сейчас будет ещё хуже, не грустите:
+
+$$ \frac{x ' * \cos{x  }   * \cos{y  }   - ( \cos{y  } )' * \sin{x  }    }{{( \cos{y  } ) }^{2  }  }  $$
+
+Надеюсь всё хорошо, но эту надежду надо безусловно проверять:
+
+$$ \frac{1  * \cos{x  }   * \cos{y  }   - ( \cos{y  } )' * \sin{x  }    }{{( \cos{y  } ) }^{2  }  }  $$
+
+Любой человек может это понять, даже если он к математике не имеет отношения:
+
+$$ \frac{1  * \cos{x  }   * \cos{y  }   - y ' * -1  * \sin{y  }    * \sin{x  }    }{{( \cos{y  } ) }^{2  }  }  $$
+
+Давайте поработаем:
+
+$$ \frac{1  * \cos{x  }   * \cos{y  }   - 0  * -1  * \sin{y  }    * \sin{x  }    }{{( \cos{y  } ) }^{2  }  }  $$
+
+\section{Упростим выражение}
+
+$$ \frac{1  * \cos{x  }   * \cos{y  }   - 0  * -1  * \sin{y  }    * \sin{x  }    }{{( \cos{y  } ) }^{2  }  }  $$
+
+Выберем подсардельку из сардельки:
+
+$$ \frac{\cos{x  }  * \cos{y  }   - 0  * -1  * \sin{y  }    * \sin{x  }    }{{( \cos{y  } ) }^{2  }  }  $$
+
+Где решение, Лебовски?
+
+$$ \frac{\cos{x  }  * \cos{y  }   - 0  * \sin{x  }    }{{( \cos{y  } ) }^{2  }  }  $$
+
+Я буду доказывать, но не всё. Ну и что-то буду доказывать. Вот смотрю и радуюсь:
+
+$$ \frac{\cos{x  }  * \cos{y  }   - 0   }{{( \cos{y  } ) }^{2  }  }  $$
+
+Если вы мне это не сдадите, мне придётся принимать у вас пересдачи:
+
+$$ \frac{\cos{x  }  * \cos{y  }   }{{( \cos{y  } ) }^{2  }  }  $$
+
+\end{document}

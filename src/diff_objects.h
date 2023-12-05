@@ -126,15 +126,22 @@ bool diff_elem_verify(void* elem);
 char* diff_elem_str_val(const void* elem);
 
 struct DiffData {
+    static const size_t MAX_PATH_LEN = 256;
+
     Tree tree = {};
     DiffVars vars = {};
 
     FILE* tex_file = {};
+    char tex_filename[MAX_PATH_LEN] = {};
+
+    bool simplify_substitute_vars = false;
+    bool tree_changed = false;
 
     inline bool ctor() {
         bool res = TREE_CTOR(&tree, sizeof(DiffElem), &diff_elem_dtor,
                              &diff_elem_verify, &diff_elem_str_val) == Tree::OK;
         res |= vars.ctor();
+        tree_changed = true;
         return res;
     };
     inline void dtor() {
@@ -143,14 +150,19 @@ struct DiffData {
         if (tex_file != nullptr) {
             fclose(tex_file);
             tex_file = nullptr;
+            tex_filename[0] = '\0';
         }
+        tree_changed = false;
+        simplify_substitute_vars = false;
     };
-    inline bool open_tex(const char* filename, const char* mode = "wb") {
+    inline bool open_tex(const char* directory, const char* mode = "wb") {
         assert(tex_file == nullptr);
-        assert(filename);
+        assert(directory);
         assert(mode);
 
-        return file_open(&tex_file, filename, mode);
+        snprintf(tex_filename, MAX_PATH_LEN, "%s/%s", directory, "article.tex");
+
+        return file_open(&tex_file, tex_filename, mode);
     }
     inline bool close_tex() {
         assert(tex_file);

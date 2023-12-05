@@ -23,11 +23,14 @@ static Status::Statuses tex_dump_traversal_node_opening_(DiffData* diff_data, Tr
 
 #define PRINTF_(...) if (file_printf(diff_data->tex_file, __VA_ARGS__) <= 0) return Status::OUTPUT_ERROR
 
-Status::Statuses tex_dump_add(DiffData* diff_data) {
+Status::Statuses tex_dump_add(DiffData* diff_data, bool print_phrase) {
     assert(diff_data);
     assert(diff_data->tex_file);
 
-    STATUS_CHECK(tex_write_phrase_(diff_data));
+    TREE_CHANGED = false;
+
+    if (print_phrase)
+        STATUS_CHECK(tex_write_phrase_(diff_data));
 
     STATUS_CHECK(tex_dump_traversal_(diff_data, &diff_data->tree.root));
 
@@ -61,8 +64,13 @@ static Status::Statuses tex_dump_traversal_(DiffData* diff_data, TreeNode** node
     if (node_ending[0] != '\0')
         PRINTF_("%s", node_ending);
 
-    if (parenthesis)
-        PRINTF_(") ");
+    if (parenthesis || (*NODE_WILL_BE_DIFFED(*node) && TYPE_IS_OPER(*node)))
+        PRINTF_(")");
+
+    if (*NODE_WILL_BE_DIFFED(*node))
+        PRINTF_("'");
+
+    PRINTF_(" ");
 
     if (NODE_IS_ROOT(*node))
         PRINTF_("$$\n");
@@ -155,7 +163,7 @@ static Status::Statuses tex_dump_traversal_node_opening_(DiffData* diff_data, Tr
     if (NODE_IS_ROOT(*node))
         *parenthesis = false;
 
-    if (*parenthesis)
+    if (*parenthesis || *NODE_WILL_BE_DIFFED(*node))
         PRINTF_("( ");
 
     if (node_opening[0] != '\0')
@@ -235,12 +243,14 @@ static Status::Statuses tex_dump_traversal_write_oper_(DiffData* diff_data, Tree
 }
 
 
-Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_filename) {
+Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_directory) {
     assert(diff_data);
     assert(diff_data->tex_file == nullptr);
-    assert(tex_filename);
 
-    if (!diff_data->open_tex(tex_filename))
+    if (tex_directory == nullptr)
+        return Status::NORMAL_WORK;
+
+    if (!diff_data->open_tex(tex_directory))
         return Status::FILE_ERROR;
 
     STATUS_CHECK(tex_write_header_(diff_data));
@@ -249,21 +259,27 @@ Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_filename) {
 }
 
 
-Status::Statuses tex_dump_end(DiffData* diff_data, const char* tex_filename) {
+Status::Statuses tex_dump_end(DiffData* diff_data, const char* tex_directory) {
     assert(diff_data);
-    assert(diff_data->tex_file);
+    assert(diff_data->tex_file || (diff_data->tex_filename == nullptr && tex_directory == nullptr));
+
+    if (diff_data->tex_filename == nullptr || tex_directory == nullptr) {
+        assert(diff_data->tex_file == nullptr && tex_directory == nullptr);
+        return Status::NORMAL_WORK;
+    }
 
     STATUS_CHECK(tex_write_footer_(diff_data));
 
     if (!diff_data->close_tex())
         return Status::FILE_ERROR;
 
-    static const size_t MAX_COMMAND_LEN = 256;
+    static const size_t MAX_COMMAND_LEN = diff_data->MAX_PATH_LEN * 2;
     char command[MAX_COMMAND_LEN] = "";
 
     printf("LaTeX pdf generation:\n");
 
-    snprintf(command, MAX_COMMAND_LEN, "pdflatex -interaction=batchmode %s", tex_filename);
+    snprintf(command, MAX_COMMAND_LEN, "pdflatex -interaction=batchmode -output-directory %s  %s",
+                                                           tex_directory, diff_data->tex_filename);
 
     if (system(command) != 0) {
         fprintf(stderr, "pdf latex error occured\n");
@@ -300,6 +316,7 @@ static Status::Statuses tex_write_header_(DiffData* diff_data) {
                                      "\\usepackage{booktabs}\n"
                                      "\\usepackage{amsmath}\n"
                                      "\\usepackage{amssymb}\n"
+                                     "\\usepackage{indentfirst}\n"
                                      "\n"
                                      "\\title{Работа X.X.X. Дифференцирование математических выражений}\n"
                                      "\\author{Скайнет и Кожаный мешок (Александр Рожков)}\n"
@@ -307,7 +324,8 @@ static Status::Statuses tex_write_header_(DiffData* diff_data) {
                                      "\n"
                                      "\\begin{document}\n"
                                      "\n"
-                                     "\\maketitle\n";
+                                     "\\maketitle\n"
+                                     "\\newpage\n";
 
     PRINTF_("%s\n", header_text);
 
@@ -321,6 +339,52 @@ static Status::Statuses tex_write_footer_(DiffData* diff_data) {
     static const char* footer_text = "\n\\end{document}";
 
     PRINTF_("%s\n", footer_text);
+
+    return Status::NORMAL_WORK;
+}
+
+Status::Statuses tex_dump_given_expression(DiffData* diff_data) {
+    assert(diff_data);
+    assert(diff_data->tex_file);
+
+    PRINTF_("\n\\section{Дано}\n");
+
+    STATUS_CHECK(tex_dump_add(diff_data, false));
+
+    return Status::NORMAL_WORK;
+}
+
+Status::Statuses tex_dump_section_diff(DiffData* diff_data) {
+    assert(diff_data);
+    assert(diff_data->tex_file);
+
+    PRINTF_("\n\\section{Продифференцируем}\n");
+
+    *NODE_WILL_BE_DIFFED(*ROOT) = true;
+
+    STATUS_CHECK(tex_dump_add(diff_data, false));
+
+    return Status::NORMAL_WORK;
+}
+
+Status::Statuses tex_dump_section_simplify(DiffData* diff_data) {
+    assert(diff_data);
+    assert(diff_data->tex_file);
+
+    PRINTF_("\n\\section{Упростим выражение}\n");
+
+    STATUS_CHECK(tex_dump_add(diff_data, false));
+
+    return Status::NORMAL_WORK;
+}
+
+Status::Statuses tex_dump_section_subst(DiffData* diff_data) {
+    assert(diff_data);
+    assert(diff_data->tex_file);
+
+    PRINTF_("\n\\section{Подставим численные значения}\n");
+
+    STATUS_CHECK(tex_dump_add(diff_data, false));
 
     return Status::NORMAL_WORK;
 }

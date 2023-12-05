@@ -122,5 +122,7 @@ Status::Statuses tree_reconnect_node(DiffData* diff_data, TreeNode** dest, TreeN
 
     diff_data->tree.size -= 1;
 
+    TREE_CHANGED = true;
+
     return Status::NORMAL_WORK;
 }

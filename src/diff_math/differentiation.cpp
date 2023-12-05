@@ -61,6 +61,11 @@ Status::Statuses diff_do_diff_traversal(DiffData* diff_data, TreeNode** node) {
     assert(node);
     assert(*node);
 
+    if (*NODE_WILL_BE_DIFFED(*node)) {
+        *NODE_WILL_BE_DIFFED(*node) = false;
+        TREE_CHANGED = true;
+    }
+
     if (TYPE_IS_OPER(*node)) {
         STATUS_CHECK(diff_do_diff_oper_node_(diff_data, node));
         return Status::NORMAL_WORK;
@@ -69,12 +74,14 @@ Status::Statuses diff_do_diff_traversal(DiffData* diff_data, TreeNode** node) {
     if (VAL_IS_SIMPLE(*node)) {
         *NODE_TYPE(*node) = DiffElemType::NUM;
         *NUM_VAL(*node) = 0;
+        TREE_CHANGED = true;
         return Status::NORMAL_WORK;
     }
 
     if (!VAL_IS_SIMPLE(*node)) {
         *NODE_TYPE(*node) = DiffElemType::NUM;
         *NUM_VAL(*node) = 1;
+        TREE_CHANGED = true;
         return Status::NORMAL_WORK;
     }
 
@@ -121,8 +128,11 @@ static Status::Statuses diff_do_diff_addition_(DiffData* diff_data, TreeNode** n
     assert(*OPER_NUM(*node) == DiffOperNum::ADD ||
            *OPER_NUM(*node) == DiffOperNum::SUB);
 
-    DO_DIFF(L(*node));
-    DO_DIFF(R(*node));
+    *NODE_WILL_BE_DIFFED(*L(*node)) = true;
+    *NODE_WILL_BE_DIFFED(*R(*node)) = true;
+
+    DO_DIFF_AND_TEX_DUMP(L(*node));
+    DO_DIFF_AND_TEX_DUMP(R(*node));
 
     return Status::NORMAL_WORK;
 }
@@ -135,12 +145,11 @@ static Status::Statuses diff_do_diff_multiplication_(DiffData* diff_data, TreeNo
 
     VdU_UdV_BUILD(DiffOperNum::ADD);
 
-    // TODO dump
+    *NODE_WILL_BE_DIFFED(*dU(*node)) = true;
+    *NODE_WILL_BE_DIFFED(*dV(*node)) = true;
 
-    DO_DIFF(dU(*node));
-    DO_DIFF(dV(*node));
-
-    // TODO dump
+    DO_DIFF_AND_TEX_DUMP(dU(*node));
+    DO_DIFF_AND_TEX_DUMP(dV(*node));
 
     return Status::NORMAL_WORK;
 }
@@ -207,12 +216,11 @@ static Status::Statuses diff_do_diff_division_(DiffData* diff_data, TreeNode** n
     STATUS_CHECK(diff_do_diff_division_create_pow_node_(diff_data, R(*node), *node,
                                                         *V(udv_vdu_node)));
 
-    // TODO dump
+    *NODE_WILL_BE_DIFFED(*dU(*L(*node))) = true;
+    *NODE_WILL_BE_DIFFED(*dV(*L(*node))) = true;
 
-    DO_DIFF(dU(*L(*node)));
-    DO_DIFF(dV(*L(*node)));
-
-    // TODO dump
+    DO_DIFF_AND_TEX_DUMP(dU(*L(*node)));
+    DO_DIFF_AND_TEX_DUMP(dV(*L(*node)));
 
     return Status::NORMAL_WORK;
 }
@@ -267,7 +275,7 @@ static Status::Statuses diff_do_diff_pow_(DiffData* diff_data, TreeNode** node) 
 
         TREE_REPLACE_SUBTREE_WITH_NUM(node, 0);
 
-        // TODO dump
+        TEX_DUMP();
 
         return Status::NORMAL_WORK;
     }
@@ -320,11 +328,7 @@ static Status::Statuses diff_do_diff_pow_simple_v_(DiffData* diff_data, TreeNode
     TREE_INSERT(R(*R(*pow_node)), *R(*pow_node), NUM_ELEM(1));
     // result: v * ((u ^ (v - 1)) * u'
 
-    // TODO DUMP
-
-    DO_DIFF(R(*R(*node)));
-
-    // TODO DUMP
+    DO_DIFF_AND_TEX_DUMP(R(*R(*node)));
 
     return Status::NORMAL_WORK;
 }
@@ -357,11 +361,7 @@ static Status::Statuses diff_do_diff_pow_not_simple_(DiffData* diff_data, TreeNo
 
     *R(*ln_node) = INSERT_SUBTREE(*ln_node, u_copy, u_size);;
 
-    // TODO dump
-
-    DO_DIFF(R(*node));
-
-    // TODO dump
+    DO_DIFF_AND_TEX_DUMP(R(*node));
 
     return Status::NORMAL_WORK;
 }
@@ -398,11 +398,7 @@ static Status::Statuses diff_do_diff_ln_(DiffData* diff_data, TreeNode** node) {
 
     *L(*node) = INSERT_SUBTREE(*node, copy, copy_size);
 
-    // TODO dump
-
-    DO_DIFF(L(*node));
-
-    // TODO dump
+    DO_DIFF_AND_TEX_DUMP(L(*node));
 
     return Status::NORMAL_WORK;
 }
@@ -416,11 +412,7 @@ static Status::Statuses diff_do_diff_sqrt_(DiffData* diff_data, TreeNode** node)
     STATUS_CHECK(diff_do_diff_complex_func_with_coeff_(diff_data, *node, DiffOperNum::DIV, 2,
                                                                          DiffOperNum::SQRT));
 
-    // TODO dump
-
-    DO_DIFF(L(*node));
-
-    // TODO dump
+    DO_DIFF_AND_TEX_DUMP(L(*node));
 
     return Status::NORMAL_WORK;
 }
@@ -444,11 +436,7 @@ static Status::Statuses diff_do_diff_sin_(DiffData* diff_data, TreeNode** node) 
 
     *R(*R(*node)) = INSERT_SUBTREE(*R(*node), original, size);
 
-    // TODO dump
-
-    DO_DIFF(L(*node));
-
-    // TODO dump
+    DO_DIFF_AND_TEX_DUMP(L(*node));
 
     return Status::NORMAL_WORK;
 }
@@ -462,11 +450,7 @@ static Status::Statuses diff_do_diff_cos_(DiffData* diff_data, TreeNode** node) 
     STATUS_CHECK(diff_do_diff_complex_func_with_coeff_(diff_data, *node, DiffOperNum::MUL, -1,
                                                                          DiffOperNum::SIN));
 
-    // TODO dump
-
-    DO_DIFF(L(*node));
-
-    // TODO dump
+    DO_DIFF_AND_TEX_DUMP(L(*node));
 
     return Status::NORMAL_WORK;
 }
