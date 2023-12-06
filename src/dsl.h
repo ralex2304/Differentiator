@@ -58,6 +58,7 @@
 
 #define NUM_ELEM(val_)      {.type = DiffElemType::NUM,  .data = {.num  = val_}}
 #define OPER_ELEM(oper_)    {.type = DiffElemType::OPER, .data = {.oper = oper_}}
+#define VAR_ELEM(var_num_)  {.type = DiffElemType::VAR,  .data = {.var = var_num_}}
 
 #define NODE_VAL(node_) (TYPE_IS_NUM(node_) ? NUM_VAL(node_) : (TYPE_IS_VAR(node_) ? VAR_VAL(node_) : nullptr))
 
@@ -136,10 +137,10 @@
             node_ = nullptr;                \
             diff_data->tree_changed = true
 
-#define DELETE_UNTIED_SUBTREE(copy_, size_)                                     \
-            do {                                                                \
-                STATUS_CHECK(tree_dtor_untied_subtree(&diff_data->tree, copy_));\
-                size_ = 0;                                                      \
+#define DELETE_UNTIED_SUBTREE(copy_, size_)                     \
+            do {                                                \
+                STATUS_CHECK(tree_dtor_untied_subtree(copy_));  \
+                size_ = 0;                                      \
             } while(0)
 
 

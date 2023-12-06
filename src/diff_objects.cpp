@@ -1,35 +1,60 @@
 #include "diff_objects.h"
 
-static bool diff_math_add_variable_search_(DiffVars* vars, const char* name, const size_t name_size,
+static bool diff_add_variable_search_(DiffVars* vars, const char* name, const size_t name_size,
                                            size_t* var_num);
 
-static bool diff_math_add_variable_is_banned_name_(const char* name, const size_t name_size);
+static bool diff_add_variable_is_banned_name_(const char* name, const size_t name_size);
 
 
-bool diff_math_add_variable(const char* text, long* const i, DiffVars* vars, size_t* var_num) {
+const DiffOper* diff_get_oper_by_name(const char* text, const size_t* const pos, size_t* const new_pos) {
     assert(text);
-    assert(i);
+    assert(pos);
+    assert(new_pos);
+
+    for (size_t op = 0; op < OPERS_NUM; op++) {
+
+        size_t oper_len = strlen(DIFF_OPERS[op].str);
+        if (strncmp(DIFF_OPERS[op].str, text + *pos, oper_len) == 0 &&
+            !is_var_char(text[*pos + oper_len])) {
+
+            *new_pos = *pos + oper_len;
+
+            return DIFF_OPERS + op;
+        }
+    }
+
+    return nullptr;
+}
+
+bool diff_add_variable(const char* text, size_t* const pos, DiffVars* vars, size_t* var_num) {
+    assert(text);
+    assert(pos);
     assert(vars);
     assert(var_num);
 
-    const char* name_begin = text + *i;
+    size_t local_pos = *pos;
 
-    while (is_var_char(text[*i])) (*i)++;
-
-    ssize_t name_size = text + *i - name_begin;
-
-    if (name_size <= 0 || diff_math_add_variable_is_banned_name_(name_begin, name_size))
+    if (!isalpha(text[local_pos])) //< Var name must start with alpha
         return false;
 
-    if (diff_math_add_variable_search_(vars, name_begin, name_size, var_num))
+    while (is_var_char(text[local_pos])) local_pos++;
+
+    ssize_t name_size = local_pos - *pos;
+
+    if (name_size <= 0 || diff_add_variable_is_banned_name_(text + *pos, name_size))
+        return false;
+
+    if (diff_add_variable_search_(vars, text + *pos, name_size, var_num)) {
+        *pos = local_pos;
         return true;
+    }
 
     while (vars->size >= vars->capacity) {
         if (!vars->resize_up())
             return false;
     }
 
-    vars->arr[vars->size].name = strndup(name_begin, name_size);
+    vars->arr[vars->size].name = strndup(text + *pos, name_size);
     if (vars->arr[vars->size].name == nullptr)
         return false;
 
@@ -39,10 +64,12 @@ bool diff_math_add_variable(const char* text, long* const i, DiffVars* vars, siz
 
     vars->size++;
 
+    *pos = local_pos;
+
     return true;
 }
 
-static bool diff_math_add_variable_search_(DiffVars* vars, const char* name, const size_t name_size,
+static bool diff_add_variable_search_(DiffVars* vars, const char* name, const size_t name_size,
                                            size_t* var_num) {
     assert(vars);
     assert(name);
@@ -57,7 +84,7 @@ static bool diff_math_add_variable_search_(DiffVars* vars, const char* name, con
     return false;
 }
 
-static bool diff_math_add_variable_is_banned_name_(const char* name, const size_t name_size) {
+static bool diff_add_variable_is_banned_name_(const char* name, const size_t name_size) {
     assert(name);
     assert(name_size >= 1);
     // banned format: A, A123

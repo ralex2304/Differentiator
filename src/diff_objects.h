@@ -173,7 +173,9 @@ struct DiffData {
     }
 };
 
-bool diff_math_add_variable(const char* text, long* const i, DiffVars* vars, size_t* var_num);
+bool diff_add_variable(const char* text, size_t* const pos, DiffVars* vars, size_t* var_num);
+
+const DiffOper* diff_get_oper_by_name(const char* text, const size_t* const pos, size_t* const new_pos);
 
 inline bool is_var_char(const char c) {
     return c == '_' || isalnum(c);

@@ -2,35 +2,26 @@
 
 static Status::Statuses text_tree_parser_new_node_(DiffData* diff_data, TreeNode** node,
                                                    TreeNode* parent,
-                                                   char* text, long* const i);
+                                                   char* text, size_t* const i);
 
 static Status::Statuses text_tree_parser_new_node_children_(DiffData* diff_data, TreeNode** node,
-                                                            char* text, long* i,
+                                                            char* text, size_t* const i,
                                                             TreeChildSide side);
 
 static Status::Statuses text_tree_parser_insert_node_(Tree* tree, TreeNode** node,
                                                       TreeNode* parent);
 
 static Status::Statuses text_tree_parser_read_node_oper_(DiffData* diff_data, TreeNode** node,
-                                                         char* text, long* const i);
+                                                         char* text, size_t* const i);
 
 static Status::Statuses text_tree_parser_new_node_num_var_or_unary_oper_(DiffData* diff_data,
-                            TreeNode** node, char* text, long* const i);
+                            TreeNode** node, char* text, size_t* const i);
 
-static DiffOperNum text_tree_parse_get_oper_by_text_(char* text, long* const i);
-
-static TreeNodeActionRes text_tree_write_prefix_action_(Tree* tree, TreeNode** node, va_list* args,
-                                                        size_t depth, const TreeChildSide side);
-
-static TreeNodeActionRes text_tree_write_postfix_action_(Tree* tree, TreeNode** node, va_list* args,
-                                                         size_t depth, const TreeChildSide side);
-
-static TreeNodeActionRes text_tree_write_nil_action_(Tree* tree, TreeNode** node, va_list* args,
-                                                     size_t depth, const TreeChildSide side);
+static DiffOperNum text_tree_parse_get_oper_by_text_(char* text, size_t* const i);
 
 #define PRINT_ERR_(...) printf("Tree file err: " __VA_ARGS__)
 
-inline static Status::Statuses skip_spaces_and_char_(const char* text, long* const i, const char c) {
+inline static Status::Statuses skip_spaces_and_char_(const char* text, size_t* const i, const char c) {
     assert(text);
     assert(i);
 
@@ -45,7 +36,7 @@ inline static Status::Statuses skip_spaces_and_char_(const char* text, long* con
     return Status::NORMAL_WORK;
 }
 
-inline static Status::Statuses skip_spaces_(const char* text, long* const i) {
+inline static Status::Statuses skip_spaces_(const char* text, size_t* const i) {
     assert(text);
     assert(i);
 
@@ -62,7 +53,7 @@ Status::Statuses text_tree_parser(DiffData* diff_data, char* text) {
     assert(diff_data);
     assert(text);
 
-    long i = 0;
+    size_t i = 0;
 
     while (text[i] && isspace(text[i])) i++;
 
@@ -90,7 +81,7 @@ Status::Statuses text_tree_parser(DiffData* diff_data, char* text) {
 
 static Status::Statuses text_tree_parser_new_node_(DiffData* diff_data, TreeNode** node,
                                                    TreeNode* parent,
-                                                   char* text, long* const i) {
+                                                   char* text, size_t* const i) {
     assert(diff_data);
     assert(node);
     assert(text);
@@ -121,7 +112,7 @@ static Status::Statuses text_tree_parser_new_node_(DiffData* diff_data, TreeNode
 }
 
 static Status::Statuses text_tree_parser_new_node_num_var_or_unary_oper_(DiffData* diff_data,
-                                    TreeNode** node, char* text, long* const i) {
+                                    TreeNode** node, char* text, size_t* const i) {
     assert(diff_data);
     assert(node);
     assert(text);
@@ -155,7 +146,7 @@ static Status::Statuses text_tree_parser_new_node_num_var_or_unary_oper_(DiffDat
 
     size_t var = 0;
 
-    if (!is_found && diff_math_add_variable(text, i, &diff_data->vars, &var) == true) {
+    if (!is_found && diff_add_variable(text, i, &diff_data->vars, &var) == true) {
 
         elem = {.type = DiffElemType::VAR,
                 .data = {.var = var}};
@@ -178,7 +169,7 @@ static Status::Statuses text_tree_parser_new_node_num_var_or_unary_oper_(DiffDat
 }
 
 static Status::Statuses text_tree_parser_new_node_children_(DiffData* diff_data, TreeNode** node,
-                                                            char* text, long* i,
+                                                            char* text, size_t* i,
                                                             TreeChildSide side) {
     assert(diff_data);
     assert(node);
@@ -201,7 +192,7 @@ static Status::Statuses text_tree_parser_new_node_children_(DiffData* diff_data,
     return Status::NORMAL_WORK;
 }
 
-static DiffOperNum text_tree_parse_get_oper_by_text_(char* text, long* const i) {
+static DiffOperNum text_tree_parse_get_oper_by_text_(char* text, size_t* const i) {
     assert(text);
     assert(i);
 
@@ -213,7 +204,7 @@ static DiffOperNum text_tree_parse_get_oper_by_text_(char* text, long* const i) 
         if (strncmp(DIFF_OPERS[op].str, text + *i, oper_len) == 0 &&
             !is_var_char(text[*i + oper_len])) {
 
-            ret = (DiffOperNum)op;
+            ret = DIFF_OPERS[op].num;
             (*i) += oper_len;
             return ret;
         }
@@ -224,7 +215,7 @@ static DiffOperNum text_tree_parse_get_oper_by_text_(char* text, long* const i) 
 
 #undef OPER_CASE_
 static Status::Statuses text_tree_parser_read_node_oper_(DiffData* diff_data, TreeNode** node,
-                                                         char* text, long* const i) {
+                                                         char* text, size_t* const i) {
     assert(diff_data);
     assert(node);
     assert(*node);
@@ -268,91 +259,4 @@ static Status::Statuses text_tree_parser_insert_node_(Tree* tree, TreeNode** nod
 
 #undef SKIP_SPACE_
 #undef SKIP_TO_CHAR_
-
-Status::Statuses text_tree_save(Tree* tree, const char* filename) {
-    assert(tree);
-    assert(filename);
-
-    FILE* file = {};
-    if (!file_open(&file, filename, "wb"))
-        return Status::FILE_ERROR;
-
-    TreeNodeAction* actions[4] = {&text_tree_write_prefix_action_, nullptr,
-                                  &text_tree_write_postfix_action_, &text_tree_write_nil_action_};
-
-    if (tree_traversal(tree, &tree->root, actions, file) != Tree::OK)
-        return Status::TREE_ERROR;
-
-    if (!file_close(file))
-        return Status::FILE_ERROR;
-
-    return Status::NORMAL_WORK;
-}
 #undef PRINT_ERR_
-
-static TreeNodeActionRes text_tree_write_prefix_action_(Tree* tree, TreeNode** node, va_list* args,
-                                                        size_t depth, const TreeChildSide side) {
-    (void) tree;
-    (void) depth;
-    (void) side;
-    assert(node);
-    assert(*node);
-    assert(args);
-
-    va_list args_dup = {};
-    va_copy(args_dup, *args);
-
-    FILE* file = va_arg(args_dup, FILE*);
-
-    va_end(args_dup);
-
-    if (fprintf(file, "( \"%s\" ", "123") <= 0) // FIXME
-        return TreeNodeActionRes::ERR;
-
-    return TreeNodeActionRes::OK;
-}
-
-static TreeNodeActionRes text_tree_write_nil_action_(Tree* tree, TreeNode** node, va_list* args,
-                                                     size_t depth, const TreeChildSide side) {
-    (void) tree;
-    (void) depth;
-    (void) side;
-    assert(node);
-    assert(*node == nullptr);
-    assert(args);
-
-    va_list args_dup = {};
-    va_copy(args_dup, *args);
-
-    FILE* file = va_arg(args_dup, FILE*);
-
-    va_end(args_dup);
-
-    if (fprintf(file, "nil ") <= 0)
-        return TreeNodeActionRes::ERR;
-
-    return TreeNodeActionRes::OK;
-}
-
-static TreeNodeActionRes text_tree_write_postfix_action_(Tree* tree, TreeNode** node, va_list* args,
-                                                         size_t depth, const TreeChildSide side) {
-    (void) tree;
-    (void) depth;
-    (void) side;
-    assert(node);
-    assert(*node);
-    assert(args);
-
-    va_list args_dup = {};
-    va_copy(args_dup, *args);
-
-    FILE* file = va_arg(args_dup, FILE*);
-
-    va_end(args_dup);
-
-    if (fprintf(file, ") ") <= 0)
-        return TreeNodeActionRes::ERR;
-
-    return TreeNodeActionRes::OK;
-}
-

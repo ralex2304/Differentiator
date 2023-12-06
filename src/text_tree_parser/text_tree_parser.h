@@ -13,6 +13,4 @@
 
 Status::Statuses text_tree_parser(DiffData* diff_data, char* text);
 
-Status::Statuses text_tree_save(Tree* tree, const char* filename);
-
 #endif //< #ifndef TEXT_TREE_PARSER_H_

@@ -1,1 +1,1 @@
-((sin(x)) / (cos(y)))
+sin(x) / cos(x)

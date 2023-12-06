@@ -6,11 +6,11 @@
 #include "utils/statuses.h"
 #include "diff_objects.h"
 #include "file/file.h"
-#include "text_tree_parser/text_tree_parser.h"
 #include "diff_math/differentiation.h"
 #include "diff_math/simplification.h"
 #include "interface.h"
 #include "tex/tex.h"
+#include "text_tree_parser/recursive_fall.h"
 
 #include "config.h"
 #include TREE_INCLUDE

@@ -112,7 +112,7 @@ Status::Statuses diff_read_tree(DiffData* diff_data, char** text, const char* in
 
     STATUS_CHECK(file_open_read_close(input_filename, text));
 
-    STATUS_CHECK(text_tree_parser(diff_data, *text));
+    STATUS_CHECK(recursive_fall(diff_data, *text));
 
     return Status::NORMAL_WORK;
 }

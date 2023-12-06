@@ -80,14 +80,13 @@ Status::Statuses tree_copy_subtree(DiffData* diff_data, TreeNode* src, TreeNode*
 }
 
 
-Status::Statuses tree_dtor_untied_subtree(Tree* tree, TreeNode** node) {
-    assert(tree);
+Status::Statuses tree_dtor_untied_subtree(TreeNode** node) {
     assert(node);
 
     if (*node == nullptr) return Status::NORMAL_WORK;
 
-    STATUS_CHECK(tree_dtor_untied_subtree(tree, L(*node)));
-    STATUS_CHECK(tree_dtor_untied_subtree(tree, R(*node)));
+    STATUS_CHECK(tree_dtor_untied_subtree(L(*node)));
+    STATUS_CHECK(tree_dtor_untied_subtree(R(*node)));
 
     assert(*L(*node) == nullptr);
     assert(*R(*node) == nullptr);
