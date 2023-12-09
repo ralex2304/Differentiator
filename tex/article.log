@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2023.12.4)  6 DEC 2023 21:25
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2023.12.4)  10 DEC 2023 00:41
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -464,29 +464,27 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 20.
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] [3] (tex/article.aux) 
-) 
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] (tex/article.aux) ) 
 Here is how much of TeX's memory you used:
- 5188 strings out of 479721
- 78380 string characters out of 5887697
- 378408 words of memory out of 5000000
- 23086 multiletter control sequences out of 15000+600000
+ 5182 strings out of 479721
+ 78302 string characters out of 5887697
+ 374394 words of memory out of 5000000
+ 23080 multiletter control sequences out of 15000+600000
  480544 words of font info for 62 fonts, out of 8000000 for 9000
  430 hyphenation exceptions out of 8191
- 68i,6n,76p,382b,221s stack positions out of 5000i,500n,10000p,200000b,80000s
- </home/alex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/labx1728.600pk> 
-</home/alex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/larm1200.600pk> </
-home/alex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/larm1440.600pk> </ho
-me/alex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/larm2074.600pk></usr/s
-hare/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/t
-exlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/
-texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-di
-st/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fon
-ts/type1/public/amsfonts/cm/cmsy8.pfb>
-Output written on tex/article.pdf (3 pages, 87534 bytes).
+ 68i,6n,76p,271b,221s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </
+home/alex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/labx1728.600pk> </ho
+me/alex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/larm1200.600pk> </home
+/alex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/larm1440.600pk> </home/a
+lex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/larm2074.600pk></usr/share
+/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texli
+ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb>
+Output written on tex/article.pdf (2 pages, 62874 bytes).
 PDF statistics:
- 182 PDF objects out of 1000 (max. 8388607)
- 39 compressed objects within 1 object stream
+ 146 PDF objects out of 1000 (max. 8388607)
+ 31 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

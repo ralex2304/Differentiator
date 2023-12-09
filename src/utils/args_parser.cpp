@@ -15,7 +15,7 @@ Status::Statuses args_parse(int argc, char* argv[], ArgsVars* args_vars) {
 
         {"-o", read_tex_directory,    "#   -o - specify tex output file name after this\n"},  //< Output filename
 
-        {"-v", enable_substitute_vals, "#   -v - will ask about variable values\n"},      //< exact mode
+        //{"-v", enable_substitute_vals, "#   -v - will ask about variable values\n"},      //< exact mode
 
     };
 
@@ -110,7 +110,7 @@ ArgsMode read_tex_directory(const Argument args_dict[], const int args_dict_len,
     return ArgsMode::CONTINUE;
 }
 
-ArgsMode enable_substitute_vals(const Argument args_dict[], const int args_dict_len,
+/*ArgsMode enable_substitute_vals(const Argument args_dict[], const int args_dict_len,
                                 int* arg_i, int argc, char* argv[], ArgsVars* args_vars) {
     (void) args_dict_len;
     (void) argc;
@@ -123,4 +123,4 @@ ArgsMode enable_substitute_vals(const Argument args_dict[], const int args_dict_
     args_vars->substitute_vals = true;
 
     return ArgsMode::CONTINUE;
-}
+}*/

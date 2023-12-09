@@ -56,11 +56,7 @@ Status::Statuses tree_copy_subtree(DiffData* diff_data, TreeNode* src, TreeNode*
     // is_simple can be nullptr
 
     Tree copy = {};
-    if (TREE_CTOR(&copy, sizeof(DiffElem), &diff_elem_dtor,
-                                           &diff_elem_verify,
-                                           &diff_elem_str_val) != Tree::OK)
-        return Status::TREE_ERROR;
-
+    DSL_TREE_CTOR(&copy);
 
     bool placeholder = false;
     STATUS_CHECK(tree_copy_subtree_traversal_(diff_data, &copy, src, &copy.root, nullptr,
@@ -73,8 +69,7 @@ Status::Statuses tree_copy_subtree(DiffData* diff_data, TreeNode* src, TreeNode*
     copy.size = 0;
     copy.root = nullptr;
 
-    if (tree_dtor(&copy) != Tree::OK)
-        return Status::TREE_ERROR;
+    DSL_TREE_DTOR(&copy);
 
     return Status::NORMAL_WORK;
 }

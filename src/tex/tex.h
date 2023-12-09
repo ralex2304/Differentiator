@@ -12,7 +12,7 @@
 #include "../utils/rand_wrapper.h"
 
 
-Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_directory);
+Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_directory, const DiffMode mode);
 
 Status::Statuses tex_dump_add(DiffData* diff_data, bool print_phrase = true);
 
@@ -25,5 +25,11 @@ Status::Statuses tex_dump_section_diff(DiffData* diff_data);
 Status::Statuses tex_dump_section_simplify(DiffData* diff_data);
 
 Status::Statuses tex_dump_section_subst(DiffData* diff_data);
+
+Status::Statuses tex_dump_section_taylor(DiffData* diff_data, const size_t degree, const double point);
+
+Status::Statuses tex_subsection_n_derivative_(DiffData* diff_data, const size_t n);
+
+Status::Statuses tex_print_evaled_value(DiffData* diff_data, const double value);
 
 #endif //< #ifndef TEX_H_

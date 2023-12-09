@@ -89,8 +89,8 @@ ArgsMode read_tex_directory(const Argument args_dict[], const int args_dict_len,
  * @param[out] args_vars
  * @return ArgsMode
  */
-ArgsMode enable_substitute_vals(const Argument args_dict[], const int args_dict_len,
-                                int* arg_i, int argc, char* argv[], ArgsVars* args_vars);
+/*ArgsMode enable_substitute_vals(const Argument args_dict[], const int args_dict_len,
+                                int* arg_i, int argc, char* argv[], ArgsVars* args_vars);*/
 
 /**
  * @brief Parses console arguments

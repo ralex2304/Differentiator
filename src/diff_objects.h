@@ -12,6 +12,19 @@
 #include "config.h"
 #include TREE_INCLUDE
 
+struct DiffMode {
+    enum MathActions {
+        SIMPLIFICATION    = 0,
+        DIFF              = 1,
+        TAYLOR            = 2,
+    };
+
+    MathActions action = SIMPLIFICATION;
+
+    bool eval = false;
+    bool plot = false;
+};
+
 enum DiffOperType {
     OPER_TYPE_ERR = 0,
     UNARY         = 1,
@@ -174,6 +187,8 @@ struct DiffData {
 };
 
 bool diff_add_variable(const char* text, size_t* const pos, DiffVars* vars, size_t* var_num);
+
+bool diff_exists_var_with_no_value(DiffData* diff_data, bool except_x);
 
 const DiffOper* diff_get_oper_by_name(const char* text, const size_t* const pos, size_t* const new_pos);
 

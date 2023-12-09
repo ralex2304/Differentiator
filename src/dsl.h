@@ -184,4 +184,23 @@ inline bool dsl_is_double_equal(const double a, const double b) {
                                         TEX_DUMP();                             \
                                     } while (0)
 
+#define TREE_CHECK(action_, ...)    do {                                \
+                                        if (action_ != Tree::OK) {      \
+                                            __VA_ARGS__;                \
+                                            return Status::TREE_ERROR;  \
+                                        }                               \
+                                    } while(0)
+
+#define DSL_TREE_CTOR(tree_, ...) TREE_CHECK(TREE_CTOR(tree_, sizeof(DiffElem), &diff_elem_dtor, \
+                                                  &diff_elem_verify, &diff_elem_str_val), __VA_ARGS__)
+
+#define DSL_TREE_DTOR(tree_, ...) TREE_CHECK(tree_dtor(tree_), __VA_ARGS__)
+
+#define CLEAR_TREE(tree_, ...)  do {                                    \
+                                    DSL_TREE_DTOR(tree_, __VA_ARGS__);  \
+                                    DSL_TREE_CTOR(tree_, __VA_ARGS__);  \
+                                } while(0)
+
+
+
 #endif //< #ifndef DIFF_DSL_H_

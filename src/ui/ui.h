@@ -55,6 +55,14 @@ char ui_get_char_no_enter(FILE* stream = stdin);
 double ui_get_double_or_NAN(FILE* stream = stdin);
 
 /**
+ * @brief Gets int from stream. If error returns -__INT_MAX__
+ *
+ * @param stream
+ * @return int
+ */
+int ui_get_int(FILE* stream = stdin);
+
+/**
  * @brief Flushes input stream
  * @param stream
  *

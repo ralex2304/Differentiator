@@ -204,12 +204,17 @@ static Status::Statuses diff_simplify_neutral_(DiffData* diff_data, TreeNode** n
             break;
 
         case DiffOperNum::POW:
+            if (NODE_VAL_EQUALS(*L(*node), 0)) {
+                TREE_REPLACE_SUBTREE_WITH_NUM(node, 1);
+                break;
+            }
+
             if (NODE_VAL_EQUALS(*L(*node), 1)) {
                 TREE_REPLACE_SUBTREE_WITH_NUM(node, 1);
                 break;
             }
 
-            if (NODE_VAL_EQUALS(*L(*node), 0)) {
+            if (NODE_VAL_EQUALS(*R(*node), 0)) {
                 TREE_REPLACE_SUBTREE_WITH_NUM(node, 1);
                 break;
             }

@@ -4,7 +4,7 @@
 
 static Status::Statuses tex_write_phrase_(DiffData* diff_data);
 
-static Status::Statuses tex_write_header_(DiffData* diff_data);
+static Status::Statuses tex_write_header_(DiffData* diff_data, const DiffMode mode);
 
 static Status::Statuses tex_write_footer_(DiffData* diff_data);
 
@@ -243,7 +243,7 @@ static Status::Statuses tex_dump_traversal_write_oper_(DiffData* diff_data, Tree
 }
 
 
-Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_directory) {
+Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_directory, const DiffMode mode) {
     assert(diff_data);
     assert(diff_data->tex_file == nullptr);
 
@@ -253,7 +253,7 @@ Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_directory) 
     if (!diff_data->open_tex(tex_directory))
         return Status::FILE_ERROR;
 
-    STATUS_CHECK(tex_write_header_(diff_data));
+    STATUS_CHECK(tex_write_header_(diff_data, mode));
 
     return Status::NORMAL_WORK;
 }
@@ -301,33 +301,50 @@ static Status::Statuses tex_write_phrase_(DiffData* diff_data) {
     return Status::NORMAL_WORK;
 }
 
-static Status::Statuses tex_write_header_(DiffData* diff_data) {
+static Status::Statuses tex_write_header_(DiffData* diff_data, const DiffMode mode) {
     assert(diff_data);
     assert(diff_data->tex_file);
 
-    static const char* header_text = "\\documentclass[12pt]{article}\n"
-                                     "\\usepackage[T2A]{fontenc}\n"
-                                     "\\usepackage{mathtools}\n"
-                                     "\\usepackage[utf8]{inputenc}\n"
-                                     "\\usepackage[english, russian]{babel}\n"
-                                     "\\usepackage{fancyhdr}\n"
-                                     "\\usepackage{graphicx}\n"
-                                     "\\usepackage{float}\n"
-                                     "\\usepackage{booktabs}\n"
-                                     "\\usepackage{amsmath}\n"
-                                     "\\usepackage{amssymb}\n"
-                                     "\\usepackage{indentfirst}\n"
-                                     "\n"
-                                     "\\title{Работа X.X.X. Дифференцирование математических выражений}\n"
-                                     "\\author{Скайнет и Кожаный мешок (Александр Рожков)}\n"
-                                     "\\date{29 августа 1997 года - 11 июля 2029 года}\n"
-                                     "\n"
-                                     "\\begin{document}\n"
-                                     "\n"
-                                     "\\maketitle\n"
-                                     "\\newpage\n";
+    const char* title = "Wrong mode given";
 
-    PRINTF_("%s\n", header_text);
+    switch (mode.action) {
+        case DiffMode::SIMPLIFICATION:
+            title = "Упрощение математического выражения";
+            break;
+
+        case DiffMode::DIFF:
+            title = "Дифференцирование математического выражения";
+            break;
+
+        case DiffMode::TAYLOR:
+            title = "Разложение функции в ряд Тейлора";
+            break;
+
+        default:
+            break;
+    }
+
+    PRINTF_("\\documentclass[12pt]{article}\n"
+            "\\usepackage[T2A]{fontenc}\n"
+            "\\usepackage{mathtools}\n"
+            "\\usepackage[utf8]{inputenc}\n"
+            "\\usepackage[english, russian]{babel}\n"
+            "\\usepackage{fancyhdr}\n"
+            "\\usepackage{graphicx}\n"
+            "\\usepackage{float}\n"
+            "\\usepackage{booktabs}\n"
+            "\\usepackage{amsmath}\n"
+            "\\usepackage{amssymb}\n"
+            "\\usepackage{indentfirst}\n"
+            "\n"
+            "\\title{Работа X.X.X. %s}\n"
+            "\\author{Скайнет и Кожаный мешок (Александр Рожков)}\n"
+            "\\date{29 августа 1997 года - 11 июля 2029 года}\n"
+            "\n"
+            "\\begin{document}\n"
+            "\n"
+            "\\maketitle\n"
+            "\\newpage\n", title);
 
     return Status::NORMAL_WORK;
 }
@@ -339,6 +356,18 @@ static Status::Statuses tex_write_footer_(DiffData* diff_data) {
     static const char* footer_text = "\n\\end{document}";
 
     PRINTF_("%s\n", footer_text);
+
+    return Status::NORMAL_WORK;
+}
+
+Status::Statuses tex_dump_section_taylor(DiffData* diff_data, const size_t degree, const double point) {
+    assert(diff_data);
+    assert(diff_data->tex_file);
+
+    PRINTF_("\n\\section{Разложим по формуле Тейлора}\n\n"
+            "Точность: до $о((x - %0.2lf)^%zu)$\n", point, degree);
+
+    STATUS_CHECK(tex_dump_add(diff_data, false));
 
     return Status::NORMAL_WORK;
 }
@@ -378,6 +407,12 @@ Status::Statuses tex_dump_section_simplify(DiffData* diff_data) {
     return Status::NORMAL_WORK;
 }
 
+Status::Statuses tex_subsection_n_derivative_(DiffData* diff_data, const size_t n) {
+    PRINTF_("\n\\subsection{Найдём %zu-ую производную}\n", n);
+
+    return Status::NORMAL_WORK;
+}
+
 Status::Statuses tex_dump_section_subst(DiffData* diff_data) {
     assert(diff_data);
     assert(diff_data->tex_file);
@@ -385,6 +420,19 @@ Status::Statuses tex_dump_section_subst(DiffData* diff_data) {
     PRINTF_("\n\\section{Подставим численные значения}\n");
 
     STATUS_CHECK(tex_dump_add(diff_data, false));
+
+    return Status::NORMAL_WORK;
+}
+
+Status::Statuses tex_print_evaled_value(DiffData* diff_data, const double value) {
+    assert(diff_data);
+
+    PRINTF_("\nПодставив знчения переменных, получаем:\n"
+            "$$");
+
+    STATUS_CHECK(tex_print_double_(diff_data, value));
+
+    PRINTF_("$$\n");
 
     return Status::NORMAL_WORK;
 }

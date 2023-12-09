@@ -69,6 +69,20 @@ bool diff_add_variable(const char* text, size_t* const pos, DiffVars* vars, size
     return true;
 }
 
+bool diff_exists_var_with_no_value(DiffData* diff_data, bool except_x) {
+    assert(diff_data);
+
+    for (size_t i = 0; i < diff_data->vars.size; i++) {
+        if (except_x && (ssize_t)i == diff_data->vars.argument)
+            continue;
+
+        if (isnan(diff_data->vars.arr[i].val))
+            return true;
+    }
+
+    return false;
+}
+
 static bool diff_add_variable_search_(DiffVars* vars, const char* name, const size_t name_size,
                                            size_t* var_num) {
     assert(vars);

@@ -78,6 +78,20 @@ double ui_get_double_or_NAN(FILE* stream) {
     return res;
 }
 
+int ui_get_int(FILE* stream) {
+    assert(stream);
+
+    int res = -__INT_MAX__;
+
+    if (fscanf(stream, "%d", &res) != 1)
+        return -__INT_MAX__;
+
+    if (!input_flush())
+        return -__INT_MAX__;
+
+    return res;
+}
+
 bool input_flush(FILE* stream) {
     assert(stream);
 
