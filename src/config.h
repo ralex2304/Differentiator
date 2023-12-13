@@ -3,6 +3,8 @@
 
 const char* const DIFF_VAR_NAME = "x";
 
+constexpr size_t TEX_DOUBLE_MAX_PRECISION = 3;
+
 #define DEBUG //< enables debug mode
 
 #ifdef DEBUG

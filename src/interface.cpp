@@ -189,3 +189,45 @@ Status::Statuses interface_error_no_argument() {
 
     return Status::NORMAL_WORK;
 }
+
+Status::Statuses interface_ask_plot_params(double* min, double* max) {
+    assert(min);
+    assert(max);
+
+    static const size_t MAX_ATTEMPTS_NUM = 5;
+
+    for (size_t i = 0; i < 2; i++) {
+        ssize_t attempts = MAX_ATTEMPTS_NUM;
+
+        while (attempts-- > 0) {
+            if (i == 0) {
+                PRINT_("Enter min value:\n");
+            } else if (i == 1) {
+                PRINT_("Enter max value:\n");
+            }
+
+            double answ = ui_get_double_or_NAN();
+
+            if (isfinite(answ)) {
+                if (i == 0) {
+                    *min = answ;
+                    break;
+                } else if (i == 1) {
+                    if (answ > *min) {
+                        *max = answ;
+                        break;
+                    }
+                }
+            }
+
+            PRINT_("Wrong input. Try again\n");
+        }
+
+        if (attempts <= 0) {
+            PRINT_("Too many attempts\n");
+            return Status::INPUT_ERROR;
+        }
+    }
+
+    return Status::NORMAL_WORK;
+}

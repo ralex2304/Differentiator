@@ -145,7 +145,8 @@ struct DiffData {
     DiffVars vars = {};
 
     FILE* tex_file = {};
-    char tex_filename[MAX_PATH_LEN] = {};
+    char tex_dir[MAX_PATH_LEN] = {};
+    char tex_filename[MAX_PATH_LEN * 2] = {};
 
     bool simplify_substitute_vars = false;
     bool tree_changed = false;
@@ -163,7 +164,7 @@ struct DiffData {
         if (tex_file != nullptr) {
             fclose(tex_file);
             tex_file = nullptr;
-            tex_filename[0] = '\0';
+            tex_dir[0] = '\0';
         }
         tree_changed = false;
         simplify_substitute_vars = false;
@@ -173,7 +174,9 @@ struct DiffData {
         assert(directory);
         assert(mode);
 
-        snprintf(tex_filename, MAX_PATH_LEN, "%s/%s", directory, "article.tex");
+        strncpy(tex_dir, directory, MAX_PATH_LEN);
+
+        snprintf(tex_filename, MAX_PATH_LEN * 2, "%s/%s", tex_dir, "article.tex");
 
         return file_open(&tex_file, tex_filename, mode);
     }

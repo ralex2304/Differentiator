@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2023.12.4)  10 DEC 2023 00:41
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2023.12.4)  13 DEC 2023 15:16
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -479,12 +479,11 @@ me/alex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/larm1200.600pk> </home
 /alex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/larm1440.600pk> </home/a
 lex/.texlive2021/texmf-var/fonts/pk/ljfour/lh/lh-t2a/larm2074.600pk></usr/share
 /texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texli
-ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb>
-Output written on tex/article.pdf (2 pages, 62874 bytes).
+ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb>
+Output written on tex/article.pdf (2 pages, 54856 bytes).
 PDF statistics:
- 146 PDF objects out of 1000 (max. 8388607)
- 31 compressed objects within 1 object stream
+ 145 PDF objects out of 1000 (max. 8388607)
+ 28 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

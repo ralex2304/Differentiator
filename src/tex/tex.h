@@ -16,7 +16,7 @@ Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_directory, 
 
 Status::Statuses tex_dump_add(DiffData* diff_data, bool print_phrase = true);
 
-Status::Statuses tex_dump_end(DiffData* diff_data, const char* tex_directory);
+Status::Statuses tex_dump_end(DiffData* diff_data);
 
 Status::Statuses tex_dump_given_expression(DiffData* diff_data);
 
@@ -31,5 +31,7 @@ Status::Statuses tex_dump_section_taylor(DiffData* diff_data, const size_t degre
 Status::Statuses tex_subsection_n_derivative_(DiffData* diff_data, const size_t n);
 
 Status::Statuses tex_print_evaled_value(DiffData* diff_data, const double value);
+
+Status::Statuses tex_insert_plot(DiffData* diff_data, const char* filename);
 
 #endif //< #ifndef TEX_H_

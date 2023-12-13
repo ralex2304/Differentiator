@@ -11,13 +11,14 @@
 #include "diff_math/taylor.h"
 #include "interface.h"
 #include "tex/tex.h"
+#include "plot/plot.h"
 #include "text_tree_parser/recursive_fall.h"
 
 #include "config.h"
 #include TREE_INCLUDE
 
 
-Status::Statuses diff_proccess(const char* input_filename, const char* tex_directory);
+Status::Statuses diff_process(const char* input_filename, const char* tex_directory);
 
 Status::Statuses diff_read_tree(DiffData* diff_data, char** text, const char* input_file);
 

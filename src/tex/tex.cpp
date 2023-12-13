@@ -259,12 +259,12 @@ Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_directory, 
 }
 
 
-Status::Statuses tex_dump_end(DiffData* diff_data, const char* tex_directory) {
+Status::Statuses tex_dump_end(DiffData* diff_data) {
     assert(diff_data);
-    assert(diff_data->tex_file || (diff_data->tex_filename == nullptr && tex_directory == nullptr));
+    assert(diff_data->tex_file || (diff_data->tex_dir == nullptr && diff_data->tex_filename == nullptr));
 
-    if (diff_data->tex_filename == nullptr || tex_directory == nullptr) {
-        assert(diff_data->tex_file == nullptr && tex_directory == nullptr);
+    if (diff_data->tex_dir == nullptr || diff_data->tex_filename == nullptr) {
+        assert(diff_data->tex_file == nullptr && diff_data->tex_filename == nullptr);
         return Status::NORMAL_WORK;
     }
 
@@ -274,12 +274,12 @@ Status::Statuses tex_dump_end(DiffData* diff_data, const char* tex_directory) {
         return Status::FILE_ERROR;
 
     static const size_t MAX_COMMAND_LEN = diff_data->MAX_PATH_LEN * 2;
-    char command[MAX_COMMAND_LEN] = "";
+    char command[MAX_COMMAND_LEN * 3] = "";
 
     printf("LaTeX pdf generation:\n");
 
-    snprintf(command, MAX_COMMAND_LEN, "pdflatex -interaction=batchmode -output-directory %s  %s",
-                                                           tex_directory, diff_data->tex_filename);
+    snprintf(command, MAX_COMMAND_LEN * 3, "pdflatex -interaction=batchmode -output-directory %s %s",
+                                                           diff_data->tex_dir, diff_data->tex_filename);
 
     if (system(command) != 0) {
         fprintf(stderr, "pdf latex error occured\n");
@@ -365,7 +365,18 @@ Status::Statuses tex_dump_section_taylor(DiffData* diff_data, const size_t degre
     assert(diff_data->tex_file);
 
     PRINTF_("\n\\section{Разложим по формуле Тейлора}\n\n"
-            "Точность: до $о((x - %0.2lf)^%zu)$\n", point, degree);
+            "Точность: до ");
+
+    if (IS_DOUBLE_EQ(0, point)) {
+        PRINTF_("$o(x^%zu)$\n", degree);
+    } else {
+        PRINTF_("$о((x - ");
+
+        STATUS_CHECK(tex_print_double_(diff_data, point));
+
+        PRINTF_(")^%zu)$\n", degree);
+
+    }
 
     STATUS_CHECK(tex_dump_add(diff_data, false));
 
@@ -437,11 +448,23 @@ Status::Statuses tex_print_evaled_value(DiffData* diff_data, const double value)
     return Status::NORMAL_WORK;
 }
 
+Status::Statuses tex_insert_plot(DiffData* diff_data, const char* filename) {
+    assert(diff_data);
+    assert(filename);
+
+    PRINTF_("\n\\begin{figure}[t]\n"
+            "\\includegraphics[width=\\textwidth]{%s}\n"
+            "\\centering\n"
+            "\\end{figure}\n", filename);
+
+    return Status::NORMAL_WORK;
+}
+
 static Status::Statuses tex_print_double_(DiffData* diff_data, const double val) {
     assert(diff_data);
     assert(diff_data->tex_file);
 
-    int precision = 2;
+    int precision = TEX_DOUBLE_MAX_PRECISION;
 
     if (IS_DOUBLE_EQ(val, (ssize_t)val))
         precision = 0;

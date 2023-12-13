@@ -21,4 +21,6 @@ Status::Statuses interface_ask_about_eval(DiffMode* mode);
 
 Status::Statuses interface_error_no_argument();
 
+Status::Statuses interface_ask_plot_params(double* min, double* max);
+
 #endif //< #ifndef INTERFACE_H_
