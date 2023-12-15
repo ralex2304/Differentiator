@@ -6,3 +6,4 @@
 /releases
 /trees/*
 !/trees/example.txt
+/tex/*

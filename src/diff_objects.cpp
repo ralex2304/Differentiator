@@ -15,7 +15,7 @@ const DiffOper* diff_get_oper_by_name(const char* text, const size_t* const pos,
 
         size_t oper_len = strlen(DIFF_OPERS[op].str);
         if (strncmp(DIFF_OPERS[op].str, text + *pos, oper_len) == 0 &&
-            !is_var_char(text[*pos + oper_len])) {
+            !(is_var_char(text[*pos + oper_len - 1]) && is_var_char(text[*pos + oper_len]))) {
 
             *new_pos = *pos + oper_len;
 
