@@ -14,8 +14,6 @@ static Status::Statuses tex_dump_traversal_write_node_(DiffData* diff_data, Tree
 
 static Status::Statuses tex_dump_traversal_write_oper_(DiffData* diff_data, TreeNode** node);
 
-static Status::Statuses tex_print_double_(DiffData* diff_data, const double val);
-
 static Status::Statuses tex_dump_traversal_node_opening_(DiffData* diff_data, TreeNode** node,
                                                          bool* parenthesis,
                                                          const char** node_ending);
@@ -179,7 +177,7 @@ static Status::Statuses tex_dump_traversal_write_node_(DiffData* diff_data, Tree
     assert(*node);
 
     if (TYPE_IS_NUM(*node)) {
-        STATUS_CHECK(tex_print_double_(diff_data, *NUM_VAL(*node)));
+        PRINTF_("%lg ", *NUM_VAL(*node));
         return Status::NORMAL_WORK;
     }
 
@@ -370,12 +368,7 @@ Status::Statuses tex_dump_section_taylor(DiffData* diff_data, const size_t degre
     if (IS_DOUBLE_EQ(0, point)) {
         PRINTF_("$o(x^%zu)$\n", degree);
     } else {
-        PRINTF_("$о((x - ");
-
-        STATUS_CHECK(tex_print_double_(diff_data, point));
-
-        PRINTF_(")^%zu)$\n", degree);
-
+        PRINTF_("$о((x - %lg)^%zu)$\n", point, degree);
     }
 
     STATUS_CHECK(tex_dump_add(diff_data, false));
@@ -439,11 +432,7 @@ Status::Statuses tex_print_evaled_value(DiffData* diff_data, const double value)
     assert(diff_data);
 
     PRINTF_("\nПодставив знчения переменных, получаем:\n"
-            "$$");
-
-    STATUS_CHECK(tex_print_double_(diff_data, value));
-
-    PRINTF_("$$\n");
+            "$$%lg$$\n", value);
 
     return Status::NORMAL_WORK;
 }
@@ -456,20 +445,6 @@ Status::Statuses tex_insert_plot(DiffData* diff_data, const char* filename) {
             "\\includegraphics[width=\\textwidth]{%s}\n"
             "\\centering\n"
             "\\end{figure}\n", filename);
-
-    return Status::NORMAL_WORK;
-}
-
-static Status::Statuses tex_print_double_(DiffData* diff_data, const double val) {
-    assert(diff_data);
-    assert(diff_data->tex_file);
-
-    int precision = TEX_DOUBLE_MAX_PRECISION;
-
-    if (IS_DOUBLE_EQ(val, (ssize_t)val))
-        precision = 0;
-
-    PRINTF_("%.*lf ", precision, val);
 
     return Status::NORMAL_WORK;
 }
