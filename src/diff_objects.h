@@ -144,7 +144,7 @@ struct DiffData {
     Tree tree = {};
     DiffVars vars = {};
 
-    FILE* tex_file = {};
+    FILE* tex_file = nullptr;
     char tex_dir[MAX_PATH_LEN] = {};
     char tex_filename[MAX_PATH_LEN * 2] = {};
 

@@ -102,8 +102,8 @@ Status::Statuses tree_reconnect_node(DiffData* diff_data, TreeNode** dest, TreeN
 
     TreeNode* node_tmp = *dest;
 
-    if (L(node_tmp) != nullptr && *L(node_tmp) != src) TREE_DELETE_NODE(L(node_tmp));
-    if (R(node_tmp) != nullptr && *R(node_tmp) != src) TREE_DELETE_NODE(R(node_tmp));
+    if (*L(node_tmp) != nullptr && *L(node_tmp) != src) TREE_DELETE_NODE(L(node_tmp));
+    if (*R(node_tmp) != nullptr && *R(node_tmp) != src) TREE_DELETE_NODE(R(node_tmp));
 
     src->parent = (*dest)->parent;
     *dest = src;

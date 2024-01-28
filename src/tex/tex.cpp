@@ -259,10 +259,10 @@ Status::Statuses tex_dump_begin(DiffData* diff_data, const char* tex_directory, 
 
 Status::Statuses tex_dump_end(DiffData* diff_data) {
     assert(diff_data);
-    assert(diff_data->tex_file || (diff_data->tex_dir == nullptr && diff_data->tex_filename == nullptr));
+    assert(diff_data->tex_file || (diff_data->tex_dir[0] == '\0' && diff_data->tex_filename[0] == '\0'));
 
-    if (diff_data->tex_dir == nullptr || diff_data->tex_filename == nullptr) {
-        assert(diff_data->tex_file == nullptr && diff_data->tex_filename == nullptr);
+    if (diff_data->tex_dir[0] == '\0' || diff_data->tex_filename[0] == '\0') {
+        assert(diff_data->tex_file == nullptr && diff_data->tex_filename[0] == '\0');
         return Status::NORMAL_WORK;
     }
 
