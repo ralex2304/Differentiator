@@ -29,7 +29,7 @@ Status::Statuses diff_plot(DiffData* diff_data, Tree** trees, const char** title
 
     snprintf(filename, diff_data->MAX_PATH_LEN * 2, "%s/plot.plt", diff_data->tex_dir);
 
-    FILE* file = {};
+    FILE* file = nullptr;
     if (!file_open(&file, filename, "wb"))
         return Status::OUTPUT_ERROR;
 
@@ -42,7 +42,7 @@ Status::Statuses diff_plot(DiffData* diff_data, Tree** trees, const char** title
     if (!file_close(file))
         return Status::OUTPUT_ERROR;
 
-    STATUS_CHECK(diff_plot_call_gnuplot_(diff_data), file_close(file));
+    STATUS_CHECK(diff_plot_call_gnuplot_(diff_data));
 
     return Status::NORMAL_WORK;
 }

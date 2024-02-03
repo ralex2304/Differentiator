@@ -276,11 +276,12 @@ Status::Statuses tex_dump_end(DiffData* diff_data) {
 
     printf("LaTeX pdf generation:\n");
 
-    snprintf(command, MAX_COMMAND_LEN * 3, "pdflatex -interaction=batchmode -output-directory %s %s",
+    snprintf(command, MAX_COMMAND_LEN * 3, "pdflatex -interaction=batchmode -quiet -output-directory %s %s",
                                                            diff_data->tex_dir, diff_data->tex_filename);
 
-    if (system(command) != 0) {
-        fprintf(stderr, "pdf latex error occured\n");
+    int res = system(command);
+    if (res != 0) {
+        fprintf(stderr, "pdf latex error occured. Code: %d\n", res);
     }
 
     printf("Generation is ended\n");
